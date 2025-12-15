@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>LLM Form Mapper (GitHub Edition)</title>
+  <title>LLM Form Mapper</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- pdf.js from CDN (v2.6.347, classic script) -->
@@ -32,7 +32,6 @@
     header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
     header span { font-size: 0.85rem; opacity: 0.8; }
 
-    /* Global status bar (simple) */
     #statusBar {
       display: flex;
       align-items: center;
@@ -190,7 +189,6 @@
 
     .split { display: flex; gap: 1rem; align-items: flex-start; }
 
-    /* Designer layout */
     #pdfPanel { flex: 2; min-width: 300px; }
     #configPanel { flex: 1; min-width: 260px; max-width: 380px; }
 
@@ -299,7 +297,6 @@
     }
     .page-controls button { background: #4b5563; color: #f9fafb; }
 
-    /* Tab 0: PDF sketch preview (actual PDF thumbnails + overlay) */
     .io-file-row {
       display: flex;
       gap: 0.8rem;
@@ -376,7 +373,6 @@
       white-space: nowrap;
     }
 
-    /* Tab 0: Field list at bottom */
     .ioFieldList {
       margin-top: 1rem;
       border-top: 1px solid #e5e7eb;
@@ -413,7 +409,6 @@
     .ioFieldLabel { font-weight: 600; color:#111827; }
     .ioFieldMeta  { color:#6b7280; font-size: 0.78rem; }
 
-    /* Preview */
     #formPreviewContainer { max-width: 900px; }
     .form-field-preview {
       border: 1px solid #e5e7eb;
@@ -439,7 +434,6 @@
       white-space: pre;
     }
 
-    /* AI: right side field reference */
     .sticky { position: sticky; top: 1rem; }
 
     .field-ref-list {
@@ -470,7 +464,6 @@
     .field-ref-label { color:#111827; font-weight:600; }
     .field-ref-meta { color:#6b7280; font-size:0.78rem; margin-top:0.15rem; }
 
-    /* Toast */
     #toast {
       position: fixed;
       left: 50%;
@@ -490,7 +483,6 @@
     }
     #toast.show { opacity: 1; }
 
-    /* Mapping fullscreen "mode" (CSS-based) */
     body.mapping-fullscreen header,
     body.mapping-fullscreen #statusBar,
     body.mapping-fullscreen .tabs,
@@ -537,114 +529,58 @@
     body.mapping-fullscreen .fs-exit-bar { display: flex; }
 
     /* ============================================
-       GITHUB INTEGRATION STYLES
+       SIMPLE REPO LOADER - Clean, prominent
        ============================================ */
-    .github-section {
-      background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
-      border: 1px solid #30363d;
-      border-radius: 10px;
-      padding: 1rem;
+    .repo-loader {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1.2rem;
       margin-bottom: 1rem;
     }
 
-    .github-section h3 {
-      color: #f0f6fc;
-      border-bottom-color: #30363d;
+    .repo-loader h3 {
+      color: #f1f5f9;
+      margin: 0 0 1rem 0;
+      padding: 0;
+      border: none;
+      font-size: 1.1rem;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.6rem;
     }
 
-    .github-section h3::before {
-      content: "";
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23f0f6fc'%3E%3Cpath d='M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z'/%3E%3C/svg%3E");
-      background-size: contain;
-      background-repeat: no-repeat;
+    .repo-loader h3::before {
+      content: "📁";
+      font-size: 1.2rem;
     }
 
-    .github-section label {
-      color: #8b949e;
-    }
-
-    .github-section input[type="text"],
-    .github-section select {
-      background: #0d1117;
-      border-color: #30363d;
-      color: #c9d1d9;
-    }
-
-    .github-section input[type="text"]:focus,
-    .github-section select:focus {
-      border-color: #58a6ff;
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
-    }
-
-    .github-section input[type="text"]::placeholder {
-      color: #484f58;
-    }
-
-    .github-section button {
-      background: #238636;
-    }
-
-    .github-section button.secondary {
-      background: #21262d;
-      border: 1px solid #30363d;
-    }
-
-    .github-section button:hover:not(:disabled) {
-      filter: brightness(1.1);
-    }
-
-    .github-config-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 0.5rem;
-    }
-
-    .github-file-selects {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.75rem;
-      margin-top: 0.75rem;
-    }
-
-    .github-status {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+    .repo-status {
       padding: 0.5rem 0.75rem;
       border-radius: 6px;
-      font-size: 0.8rem;
-      margin-top: 0.5rem;
+      font-size: 0.82rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
-    .github-status.info {
-      background: rgba(88, 166, 255, 0.15);
-      border: 1px solid rgba(88, 166, 255, 0.4);
-      color: #58a6ff;
+    .repo-status.loading {
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #60a5fa;
     }
 
-    .github-status.success {
-      background: rgba(35, 134, 54, 0.15);
-      border: 1px solid rgba(35, 134, 54, 0.4);
-      color: #3fb950;
+    .repo-status.success {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: #4ade80;
     }
 
-    .github-status.error {
-      background: rgba(248, 81, 73, 0.15);
-      border: 1px solid rgba(248, 81, 73, 0.4);
-      color: #f85149;
-    }
-
-    .github-status.warning {
-      background: rgba(210, 153, 34, 0.15);
-      border: 1px solid rgba(210, 153, 34, 0.4);
-      color: #d29922;
+    .repo-status.error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
     }
 
     .spinner {
@@ -660,45 +596,77 @@
       to { transform: rotate(360deg); }
     }
 
-    .github-actions {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-top: 0.75rem;
+    .file-selects {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
     }
 
-    .file-count-badge {
+    .file-selects label {
+      color: #94a3b8;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+    }
+
+    .file-selects select {
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #e2e8f0;
+      padding: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .file-selects select:focus {
+      outline: none;
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
+    }
+
+    .load-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .load-actions button {
+      padding: 0.6rem 1.2rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-top: 0;
+    }
+
+    .load-actions button.primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+
+    .load-actions button.primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    }
+
+    .file-count {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-width: 18px;
-      height: 18px;
-      padding: 0 5px;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
       border-radius: 999px;
-      background: #30363d;
-      color: #8b949e;
-      font-size: 0.7rem;
-      font-weight: 600;
+      background: #334155;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      font-weight: 700;
       margin-left: 0.4rem;
     }
 
-    /* Quick presets dropdown style */
-    .preset-row {
-      display: flex;
-      align-items: flex-end;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .preset-row select {
-      flex: 1;
+    @media (max-width: 700px) {
+      .file-selects { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 1100px) {
       .split { flex-direction: column; }
       #configPanel { max-width: 100%; }
       .io-file-row { flex-direction: column; align-items: stretch; }
-      .github-file-selects { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -706,7 +674,7 @@
 <body>
   <header>
     <h1>LLM Form Mapper</h1>
-    <span>GitHub Edition — Load PDFs &amp; MAPs from your repository</span>
+    <span>PDF → mapped fields → JSON schema → filled PDF</span>
   </header>
 
   <div id="statusBar">
@@ -738,83 +706,50 @@
     <button class="tab-button" data-tab="ai">3. AI Payload</button>
   </div>
 
-  <!-- TAB 0: IMPORT/EXPORT (WITH GITHUB INTEGRATION) -->
+  <!-- TAB 0: IMPORT/EXPORT -->
   <div id="tab-io" class="tab-content active">
     
-    <!-- ============================================
-         GITHUB REPOSITORY BROWSER
-         ============================================ -->
-    <div class="github-section">
-      <h3>Load from GitHub Repository</h3>
+    <!-- SIMPLE REPO LOADER -->
+    <div class="repo-loader">
+      <h3>Load from Repository</h3>
       
-      <!-- Quick presets for common repos -->
-      <div class="preset-row">
-        <div style="flex:1;">
-          <label for="repoPresetSelect">Quick Presets</label>
-          <select id="repoPresetSelect">
-            <option value="">— Select a preset or configure manually —</option>
-          </select>
-        </div>
-        <button id="applyPresetBtn" class="secondary" style="margin-top:0;">Apply</button>
+      <div id="repoStatus" class="repo-status loading">
+        <div class="spinner"></div>
+        <span>Loading available files...</span>
       </div>
 
-      <div class="github-config-grid">
+      <div class="file-selects">
         <div>
-          <label for="ghOwnerInput">Owner / Organization</label>
-          <input id="ghOwnerInput" type="text" placeholder="e.g., your-username" />
-        </div>
-        <div>
-          <label for="ghRepoInput">Repository</label>
-          <input id="ghRepoInput" type="text" placeholder="e.g., form-templates" />
-        </div>
-        <div>
-          <label for="ghBranchInput">Branch</label>
-          <input id="ghBranchInput" type="text" placeholder="main" value="main" />
-        </div>
-        <div>
-          <label for="ghFolderInput">Folder Path (optional)</label>
-          <input id="ghFolderInput" type="text" placeholder="e.g., forms or leave empty" />
-        </div>
-      </div>
-
-      <div class="github-actions">
-        <button id="ghFetchFilesBtn">Fetch Available Files</button>
-        <button id="ghClearCacheBtn" class="secondary">Clear Cache</button>
-      </div>
-
-      <div id="ghStatusContainer"></div>
-
-      <div class="github-file-selects">
-        <div>
-          <label for="ghPdfSelect">
-            PDF Files
-            <span id="ghPdfCount" class="file-count-badge">0</span>
+          <label>
+            PDF Forms
+            <span id="pdfCount" class="file-count">0</span>
           </label>
-          <select id="ghPdfSelect" disabled>
-            <option value="">— Fetch files first —</option>
+          <select id="pdfSelect" disabled>
+            <option value="">Loading...</option>
           </select>
         </div>
         <div>
-          <label for="ghMapSelect">
-            MAP Files (.json)
-            <span id="ghMapCount" class="file-count-badge">0</span>
+          <label>
+            MAP Files
+            <span id="mapCount" class="file-count">0</span>
           </label>
-          <select id="ghMapSelect" disabled>
-            <option value="">— Fetch files first —</option>
+          <select id="mapSelect" disabled>
+            <option value="">Loading...</option>
           </select>
         </div>
       </div>
 
-      <div class="github-actions" style="margin-top:0.75rem;">
-        <button id="ghLoadPdfBtn" class="success" disabled>Load Selected PDF</button>
-        <button id="ghLoadMapBtn" class="success" disabled>Load Selected MAP</button>
-        <button id="ghLoadBothBtn" disabled>Load Both (PDF + MAP)</button>
+      <div class="load-actions">
+        <button id="loadBothBtn" class="primary" disabled>Load PDF + MAP</button>
+        <button id="loadPdfOnlyBtn" class="secondary" disabled>Load PDF Only</button>
+        <button id="loadMapOnlyBtn" class="secondary" disabled>Load MAP Only</button>
+        <button id="refreshFilesBtn" class="secondary">↻ Refresh</button>
       </div>
     </div>
 
     <!-- Original local file import -->
     <div class="panel">
-      <h2>Local File Import / Export</h2>
+      <h2>Or Load Local Files</h2>
       <div class="io-file-row">
         <div class="io-file-col">
           <label for="pdfFileInputIO">Choose PDF (local file)</label>
@@ -889,7 +824,6 @@
         <label>Expected PDF file name (stored in MAP)</label>
         <input id="pdfNameDisplay" type="text" readonly placeholder="(set by MAP load or PDF load)" />
 
-        <!-- NEW: save + download right in the Designer tab -->
         <div style="margin-top:0.6rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
           <button id="designerSaveBtn" class="secondary" title="Save to browser library (Cmd/Ctrl+S)">Save (library)</button>
           <button id="designerDownloadMapBtn" class="secondary" title="Download MAP (.json) to Downloads">Download MAP</button>
@@ -1022,6 +956,20 @@
 
   <script>
     // ============================================
+    // CONFIGURATION - HARDCODED FOR SIMPLICITY
+    // ============================================
+    
+    const REPO_OWNER = "dormantone";
+    const REPO_NAME = "boringforms";
+    const REPO_BRANCH = "main";
+    
+    // Base URL for fetching files (GitHub Pages URL)
+    const BASE_URL = `https://${REPO_OWNER}.github.io/${REPO_NAME}/`;
+    
+    // GitHub API URL for listing files
+    const API_URL = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/?ref=${REPO_BRANCH}`;
+
+    // ============================================
     // INITIALIZATION & GLOBAL STATE
     // ============================================
     
@@ -1030,17 +978,13 @@
 
     const STORAGE_KEY = "llmFormMapperMappings_v2";
     const AUTOSAVE_KEY = "llmFormMapperAutosave_v2";
-    const GH_CACHE_KEY = "llmFormMapperGitHubCache_v1";
-    const GH_CONFIG_KEY = "llmFormMapperGitHubConfig_v1";
 
-    // Color cycle for field visualization
     const COLOR_PALETTE = [
       "#dc2626", "#eab308", "#f97316", "#2563eb",
       "#16a34a", "#9333ea", "#06b6d4", "#f43f5e"
     ];
     let fieldColorById = Object.create(null);
 
-    // PDF state
     let pdfDoc = null;
     let currentPageNumber = 1;
     let scale = 1.2;
@@ -1059,62 +1003,50 @@
     let lastAutosaveLabel = "(not yet)";
     let autosaveTimer = null;
 
-    // Core mapping data structure
     const mapping = {
       formName: "",
       pdfFileName: "",
       pages: []
     };
 
-    // GitHub integration state
-    let ghFileCache = {
+    // Repository file cache
+    let repoFiles = {
       pdfs: [],
-      maps: [],
-      fetchedAt: null,
-      repoKey: null
+      maps: []
     };
 
     // ============================================
     // DOM ELEMENT REFERENCES
     // ============================================
     
-    // Tabs
     const tabButtons = document.querySelectorAll(".tab-button");
     const tabIO = document.getElementById("tab-io");
     const tabDesign = document.getElementById("tab-design");
     const tabPreview = document.getElementById("tab-preview");
     const tabAI = document.getElementById("tab-ai");
 
-    // Status bar
     const countsPill = document.getElementById("countsPill");
     const savedPill = document.getElementById("savedPill");
     const dirtyPill = document.getElementById("dirtyPill");
     const loadedPdfText = document.getElementById("loadedPdfText");
     const loadedMapText = document.getElementById("loadedMapText");
 
-    // Tab 0: Local files
+    // Repo loader elements
+    const repoStatus = document.getElementById("repoStatus");
+    const pdfSelect = document.getElementById("pdfSelect");
+    const mapSelect = document.getElementById("mapSelect");
+    const pdfCount = document.getElementById("pdfCount");
+    const mapCount = document.getElementById("mapCount");
+    const loadBothBtn = document.getElementById("loadBothBtn");
+    const loadPdfOnlyBtn = document.getElementById("loadPdfOnlyBtn");
+    const loadMapOnlyBtn = document.getElementById("loadMapOnlyBtn");
+    const refreshFilesBtn = document.getElementById("refreshFilesBtn");
+
+    // Local file inputs
     const pdfFileInputIO = document.getElementById("pdfFileInputIO");
     const mapFileInputIO = document.getElementById("mapFileInputIO");
     const ioSketchWrap = document.getElementById("ioSketchWrap");
     const ioFieldList = document.getElementById("ioFieldList");
-
-    // Tab 0: GitHub integration
-    const repoPresetSelect = document.getElementById("repoPresetSelect");
-    const applyPresetBtn = document.getElementById("applyPresetBtn");
-    const ghOwnerInput = document.getElementById("ghOwnerInput");
-    const ghRepoInput = document.getElementById("ghRepoInput");
-    const ghBranchInput = document.getElementById("ghBranchInput");
-    const ghFolderInput = document.getElementById("ghFolderInput");
-    const ghFetchFilesBtn = document.getElementById("ghFetchFilesBtn");
-    const ghClearCacheBtn = document.getElementById("ghClearCacheBtn");
-    const ghStatusContainer = document.getElementById("ghStatusContainer");
-    const ghPdfSelect = document.getElementById("ghPdfSelect");
-    const ghMapSelect = document.getElementById("ghMapSelect");
-    const ghPdfCount = document.getElementById("ghPdfCount");
-    const ghMapCount = document.getElementById("ghMapCount");
-    const ghLoadPdfBtn = document.getElementById("ghLoadPdfBtn");
-    const ghLoadMapBtn = document.getElementById("ghLoadMapBtn");
-    const ghLoadBothBtn = document.getElementById("ghLoadBothBtn");
 
     // Designer
     const pdfFileInput = document.getElementById("pdfFileInput");
@@ -1143,7 +1075,6 @@
     const fsSaveBtn = document.getElementById("fsSaveBtn");
     const fsDownloadMapBtn = document.getElementById("fsDownloadMapBtn");
 
-    // Preview / Export
     const formPreviewContainer = document.getElementById("formPreviewContainer");
     const mapJsonTextarea = document.getElementById("mapJsonTextarea");
     const downloadFilledPdfBtn = document.getElementById("downloadFilledPdfBtn");
@@ -1154,7 +1085,6 @@
     const loadStoredMappingBtn = document.getElementById("loadStoredMappingBtn");
     const useLoadedPdfNameBtn = document.getElementById("useLoadedPdfNameBtn");
 
-    // AI
     const aiSourceTextInput = document.getElementById("aiSourceTextInput");
     const aiPromptTextarea = document.getElementById("aiPromptTextarea");
     const aiJsonResponseInput = document.getElementById("aiJsonResponseInput");
@@ -1243,6 +1173,250 @@
     }
 
     // ============================================
+    // REPOSITORY FILE LOADING (SIMPLE VERSION)
+    // ============================================
+
+    function setRepoStatus(type, message) {
+      repoStatus.className = `repo-status ${type}`;
+      if (type === "loading") {
+        repoStatus.innerHTML = `<div class="spinner"></div><span>${message}</span>`;
+      } else {
+        repoStatus.innerHTML = `<span>${message}</span>`;
+      }
+    }
+
+    function updateFileSelects() {
+      // Update PDF select
+      pdfSelect.innerHTML = "";
+      pdfCount.textContent = repoFiles.pdfs.length;
+      
+      if (repoFiles.pdfs.length === 0) {
+        pdfSelect.innerHTML = '<option value="">No PDFs found</option>';
+        pdfSelect.disabled = true;
+      } else {
+        pdfSelect.innerHTML = `<option value="">— Select a PDF (${repoFiles.pdfs.length}) —</option>`;
+        for (const file of repoFiles.pdfs) {
+          const opt = document.createElement("option");
+          opt.value = file.name;
+          opt.textContent = file.name;
+          pdfSelect.appendChild(opt);
+        }
+        pdfSelect.disabled = false;
+      }
+
+      // Update MAP select
+      mapSelect.innerHTML = "";
+      mapCount.textContent = repoFiles.maps.length;
+      
+      if (repoFiles.maps.length === 0) {
+        mapSelect.innerHTML = '<option value="">No MAPs found</option>';
+        mapSelect.disabled = true;
+      } else {
+        mapSelect.innerHTML = `<option value="">— Select a MAP (${repoFiles.maps.length}) —</option>`;
+        for (const file of repoFiles.maps) {
+          const opt = document.createElement("option");
+          opt.value = file.name;
+          opt.textContent = file.name;
+          mapSelect.appendChild(opt);
+        }
+        mapSelect.disabled = false;
+      }
+
+      // Update buttons
+      const hasPdfs = repoFiles.pdfs.length > 0;
+      const hasMaps = repoFiles.maps.length > 0;
+      loadPdfOnlyBtn.disabled = !hasPdfs;
+      loadMapOnlyBtn.disabled = !hasMaps;
+      loadBothBtn.disabled = !(hasPdfs && hasMaps);
+    }
+
+    async function fetchRepoFiles() {
+      setRepoStatus("loading", "Loading available files...");
+      
+      try {
+        const response = await fetch(API_URL, {
+          headers: { "Accept": "application/vnd.github.v3+json" }
+        });
+
+        if (!response.ok) {
+          throw new Error(`GitHub API error: ${response.status}`);
+        }
+
+        const files = await response.json();
+        
+        // Filter PDFs and JSON/MAP files
+        repoFiles.pdfs = [];
+        repoFiles.maps = [];
+
+        for (const file of files) {
+          if (file.type !== "file") continue;
+          
+          const name = file.name.toLowerCase();
+          
+          if (name.endsWith(".pdf")) {
+            repoFiles.pdfs.push({ name: file.name });
+          } else if (name.endsWith(".json")) {
+            repoFiles.maps.push({ name: file.name });
+          }
+        }
+
+        // Sort alphabetically
+        repoFiles.pdfs.sort((a, b) => a.name.localeCompare(b.name));
+        repoFiles.maps.sort((a, b) => a.name.localeCompare(b.name));
+
+        updateFileSelects();
+        setRepoStatus("success", `Found ${repoFiles.pdfs.length} PDFs and ${repoFiles.maps.length} MAPs`);
+
+      } catch (err) {
+        console.error("Failed to fetch repo files:", err);
+        setRepoStatus("error", `Failed to load files: ${err.message}`);
+        repoFiles = { pdfs: [], maps: [] };
+        updateFileSelects();
+      }
+    }
+
+    async function loadPdfFromRepo(filename) {
+      if (!filename) {
+        showToast("Please select a PDF first.");
+        return false;
+      }
+
+      setRepoStatus("loading", `Loading ${filename}...`);
+
+      try {
+        const url = BASE_URL + encodeURIComponent(filename);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch: ${response.status}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        
+        loadedPdfFileName = filename;
+        
+        if (!mapping.formName) {
+          mapping.formName = filename.replace(/\.pdf$/i, "");
+          formNameInput.value = mapping.formName;
+        }
+
+        if (!mapping.pdfFileName) {
+          mapping.pdfFileName = filename;
+          pdfNameDisplay.value = mapping.pdfFileName;
+          setDirty(true);
+        }
+
+        originalPdfBytes = arrayBuffer;
+        const typedarray = new Uint8Array(arrayBuffer);
+        const loadingTask = pdfjsLib.getDocument({ data: typedarray });
+
+        const pdf = await loadingTask.promise;
+        pdfDoc = pdf;
+        currentPageNumber = 1;
+        pageCountSpan.textContent = pdf.numPages;
+
+        prevPageBtn.disabled = currentPageNumber <= 1;
+        nextPageBtn.disabled = currentPageNumber >= pdf.numPages;
+
+        renderPage(currentPageNumber);
+        renderFieldList();
+        updateFieldEditor();
+        updateAllDerivedViews();
+
+        setRepoStatus("success", `Loaded: ${filename}`);
+        showToast(`PDF loaded: ${filename}`);
+        return true;
+
+      } catch (err) {
+        console.error("Error loading PDF:", err);
+        setRepoStatus("error", `Failed to load PDF: ${err.message}`);
+        return false;
+      }
+    }
+
+    async function loadMapFromRepo(filename) {
+      if (!filename) {
+        showToast("Please select a MAP first.");
+        return false;
+      }
+
+      setRepoStatus("loading", `Loading ${filename}...`);
+
+      try {
+        const url = BASE_URL + encodeURIComponent(filename);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch: ${response.status}`);
+        }
+
+        const json = await response.json();
+        
+        if (!json || typeof json !== "object") {
+          throw new Error("Invalid MAP JSON structure.");
+        }
+
+        mapping.formName = json.formName || "";
+        mapping.pdfFileName = json.pdfFileName || "";
+        mapping.pages = Array.isArray(json.pages) ? json.pages : [];
+
+        formNameInput.value = mapping.formName;
+        pdfNameDisplay.value = mapping.pdfFileName;
+
+        selectedFieldId = null;
+        fieldValues = {};
+        loadedMapFileName = filename;
+
+        renderFieldBoxes();
+        renderFieldList();
+        updateFieldEditor();
+        updateAllDerivedViews();
+        setDirty(false);
+        doAutosaveNow();
+
+        setRepoStatus("success", `Loaded: ${filename}`);
+        showToast(`MAP loaded: ${filename}`);
+        return true;
+
+      } catch (err) {
+        console.error("Error loading MAP:", err);
+        setRepoStatus("error", `Failed to load MAP: ${err.message}`);
+        return false;
+      }
+    }
+
+    // Event listeners for repo loader
+    loadPdfOnlyBtn.addEventListener("click", () => {
+      loadPdfFromRepo(pdfSelect.value);
+    });
+
+    loadMapOnlyBtn.addEventListener("click", () => {
+      loadMapFromRepo(mapSelect.value);
+    });
+
+    loadBothBtn.addEventListener("click", async () => {
+      const pdfFile = pdfSelect.value;
+      const mapFile = mapSelect.value;
+
+      if (!pdfFile) {
+        showToast("Please select a PDF.");
+        return;
+      }
+      if (!mapFile) {
+        showToast("Please select a MAP.");
+        return;
+      }
+
+      // Load MAP first so field boxes render on PDF
+      const mapOk = await loadMapFromRepo(mapFile);
+      if (mapOk) {
+        await loadPdfFromRepo(pdfFile);
+      }
+    });
+
+    refreshFilesBtn.addEventListener("click", fetchRepoFiles);
+
+    // ============================================
     // AUTOSAVE SYSTEM
     // ============================================
 
@@ -1275,7 +1449,6 @@
         if (!obj.mapping || typeof obj.mapping !== "object") return null;
         return obj;
       } catch (e) {
-        console.warn("Could not read autosave:", e);
         return null;
       }
     }
@@ -1287,8 +1460,7 @@
       const savedAtMs = Date.parse(p.savedAt || "");
       if (Number.isFinite(savedAtMs)) {
         const age = Date.now() - savedAtMs;
-        const maxAge = 1000 * 60 * 60 * 24 * 14; // 14 days
-        if (age > maxAge) return;
+        if (age > 1000 * 60 * 60 * 24 * 14) return; // 14 days max
       }
 
       const mappingEmpty =
@@ -1296,10 +1468,9 @@
         !(mapping.pdfFileName || "").trim() &&
         (!Array.isArray(mapping.pages) || mapping.pages.length === 0);
 
-      const nothingLoaded = !loadedPdfFileName && !loadedMapFileName;
       const hasFields = Array.isArray(p.mapping.pages) && p.mapping.pages.some(pg => (pg.fields || []).length);
 
-      if (mappingEmpty && nothingLoaded && hasFields) {
+      if (mappingEmpty && hasFields) {
         const clone = JSON.parse(JSON.stringify(p.mapping));
         mapping.formName = clone.formName || "";
         mapping.pdfFileName = clone.pdfFileName || "";
@@ -1403,486 +1574,6 @@
     tabButtons.forEach(btn => btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab"))));
 
     // ============================================
-    // GITHUB INTEGRATION
-    // ============================================
-
-    /**
-     * Repository presets - add your commonly used repos here.
-     * Users can also configure manually.
-     */
-    const REPO_PRESETS = [
-      // Example preset structure:
-      // { name: "My Form Templates", owner: "username", repo: "form-templates", branch: "main", folder: "forms" }
-    ];
-
-    function initRepoPresets() {
-      repoPresetSelect.innerHTML = '<option value="">— Select a preset or configure manually —</option>';
-      
-      // Load saved config as a "Last Used" preset
-      const savedConfig = loadGitHubConfig();
-      if (savedConfig && savedConfig.owner && savedConfig.repo) {
-        const opt = document.createElement("option");
-        opt.value = "__last__";
-        opt.textContent = `Last used: ${savedConfig.owner}/${savedConfig.repo}`;
-        repoPresetSelect.appendChild(opt);
-      }
-
-      // Add hardcoded presets
-      for (const preset of REPO_PRESETS) {
-        const opt = document.createElement("option");
-        opt.value = JSON.stringify(preset);
-        opt.textContent = preset.name || `${preset.owner}/${preset.repo}`;
-        repoPresetSelect.appendChild(opt);
-      }
-    }
-
-    function loadGitHubConfig() {
-      try {
-        const txt = localStorage.getItem(GH_CONFIG_KEY);
-        return txt ? JSON.parse(txt) : null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function saveGitHubConfig(config) {
-      try {
-        localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(config));
-      } catch (e) {
-        console.warn("Could not save GitHub config:", e);
-      }
-    }
-
-    function getGitHubConfig() {
-      return {
-        owner: ghOwnerInput.value.trim(),
-        repo: ghRepoInput.value.trim(),
-        branch: ghBranchInput.value.trim() || "main",
-        folder: ghFolderInput.value.trim()
-      };
-    }
-
-    function setGitHubConfig(config) {
-      ghOwnerInput.value = config.owner || "";
-      ghRepoInput.value = config.repo || "";
-      ghBranchInput.value = config.branch || "main";
-      ghFolderInput.value = config.folder || "";
-    }
-
-    function getRepoKey(config) {
-      return `${config.owner}/${config.repo}/${config.branch}/${config.folder || "(root)"}`;
-    }
-
-    applyPresetBtn.addEventListener("click", () => {
-      const val = repoPresetSelect.value;
-      if (!val) return;
-
-      if (val === "__last__") {
-        const saved = loadGitHubConfig();
-        if (saved) setGitHubConfig(saved);
-      } else {
-        try {
-          const preset = JSON.parse(val);
-          setGitHubConfig(preset);
-        } catch (e) {
-          console.warn("Invalid preset value:", e);
-        }
-      }
-      showToast("Preset applied. Click 'Fetch Available Files' to load.");
-    });
-
-    function setGitHubStatus(type, message, showSpinner = false) {
-      ghStatusContainer.innerHTML = "";
-      if (!message) return;
-
-      const div = document.createElement("div");
-      div.className = `github-status ${type}`;
-      
-      if (showSpinner) {
-        const spinner = document.createElement("div");
-        spinner.className = "spinner";
-        div.appendChild(spinner);
-      }
-      
-      const text = document.createElement("span");
-      text.textContent = message;
-      div.appendChild(text);
-      
-      ghStatusContainer.appendChild(div);
-    }
-
-    function updateGitHubFileSelects() {
-      // Update PDF select
-      ghPdfSelect.innerHTML = "";
-      ghPdfCount.textContent = ghFileCache.pdfs.length;
-      
-      if (ghFileCache.pdfs.length === 0) {
-        const opt = document.createElement("option");
-        opt.value = "";
-        opt.textContent = "— No PDFs found —";
-        ghPdfSelect.appendChild(opt);
-        ghPdfSelect.disabled = true;
-        ghLoadPdfBtn.disabled = true;
-      } else {
-        const defaultOpt = document.createElement("option");
-        defaultOpt.value = "";
-        defaultOpt.textContent = `— Select a PDF (${ghFileCache.pdfs.length} available) —`;
-        ghPdfSelect.appendChild(defaultOpt);
-        
-        for (const file of ghFileCache.pdfs) {
-          const opt = document.createElement("option");
-          opt.value = file.download_url || file.rawUrl;
-          opt.textContent = file.name;
-          opt.dataset.filename = file.name;
-          ghPdfSelect.appendChild(opt);
-        }
-        ghPdfSelect.disabled = false;
-        ghLoadPdfBtn.disabled = false;
-      }
-
-      // Update MAP select
-      ghMapSelect.innerHTML = "";
-      ghMapCount.textContent = ghFileCache.maps.length;
-      
-      if (ghFileCache.maps.length === 0) {
-        const opt = document.createElement("option");
-        opt.value = "";
-        opt.textContent = "— No MAP files found —";
-        ghMapSelect.appendChild(opt);
-        ghMapSelect.disabled = true;
-        ghLoadMapBtn.disabled = true;
-      } else {
-        const defaultOpt = document.createElement("option");
-        defaultOpt.value = "";
-        defaultOpt.textContent = `— Select a MAP (${ghFileCache.maps.length} available) —`;
-        ghMapSelect.appendChild(defaultOpt);
-        
-        for (const file of ghFileCache.maps) {
-          const opt = document.createElement("option");
-          opt.value = file.download_url || file.rawUrl;
-          opt.textContent = file.name;
-          opt.dataset.filename = file.name;
-          ghMapSelect.appendChild(opt);
-        }
-        ghMapSelect.disabled = false;
-        ghLoadMapBtn.disabled = false;
-      }
-
-      // Update "Load Both" button
-      ghLoadBothBtn.disabled = ghFileCache.pdfs.length === 0 || ghFileCache.maps.length === 0;
-    }
-
-    /**
-     * Fetch file listing from GitHub API.
-     * Uses the Contents API: https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}
-     * 
-     * Note: Unauthenticated requests are rate-limited to 60/hour.
-     * For public repos, raw file access doesn't count against this limit.
-     */
-    async function fetchGitHubFiles() {
-      const config = getGitHubConfig();
-      
-      // Validation
-      if (!config.owner || !config.repo) {
-        setGitHubStatus("error", "Please enter both Owner and Repository.");
-        return;
-      }
-
-      const repoKey = getRepoKey(config);
-      
-      // Check cache first (valid for 5 minutes)
-      const cached = loadGitHubCache();
-      if (cached && cached.repoKey === repoKey && cached.fetchedAt) {
-        const age = Date.now() - cached.fetchedAt;
-        if (age < 5 * 60 * 1000) {
-          ghFileCache = cached;
-          updateGitHubFileSelects();
-          setGitHubStatus("success", `Loaded from cache (${cached.pdfs.length} PDFs, ${cached.maps.length} MAPs)`);
-          return;
-        }
-      }
-
-      setGitHubStatus("info", "Fetching file list from GitHub...", true);
-      ghFetchFilesBtn.disabled = true;
-
-      try {
-        // Build the API URL
-        const path = config.folder ? encodeURIComponent(config.folder) : "";
-        const apiUrl = `https://api.github.com/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/${path}?ref=${encodeURIComponent(config.branch)}`;
-
-        const response = await fetch(apiUrl, {
-          headers: {
-            "Accept": "application/vnd.github.v3+json"
-          }
-        });
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error("Repository or folder not found. Check owner/repo/branch/folder.");
-          } else if (response.status === 403) {
-            const remaining = response.headers.get("X-RateLimit-Remaining");
-            if (remaining === "0") {
-              throw new Error("GitHub API rate limit exceeded. Try again later or use a smaller request window.");
-            }
-            throw new Error("Access forbidden. Repository may be private.");
-          }
-          throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
-        }
-
-        const files = await response.json();
-
-        // Filter for PDFs and JSON files
-        const pdfs = [];
-        const maps = [];
-
-        for (const file of files) {
-          if (file.type !== "file") continue;
-          
-          const name = file.name.toLowerCase();
-          
-          if (name.endsWith(".pdf")) {
-            pdfs.push({
-              name: file.name,
-              path: file.path,
-              download_url: file.download_url,
-              // Construct raw URL as backup
-              rawUrl: `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/${file.path}`
-            });
-          } else if (name.endsWith(".json") && (name.includes("map") || name.includes(".map."))) {
-            // Match files like "form.map.json", "my-form-map.json", etc.
-            maps.push({
-              name: file.name,
-              path: file.path,
-              download_url: file.download_url,
-              rawUrl: `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/${file.path}`
-            });
-          } else if (name.endsWith(".json")) {
-            // Include all .json files as potential MAPs
-            maps.push({
-              name: file.name,
-              path: file.path,
-              download_url: file.download_url,
-              rawUrl: `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/${file.path}`
-            });
-          }
-        }
-
-        // Sort alphabetically
-        pdfs.sort((a, b) => a.name.localeCompare(b.name));
-        maps.sort((a, b) => a.name.localeCompare(b.name));
-
-        // Update cache
-        ghFileCache = {
-          pdfs,
-          maps,
-          fetchedAt: Date.now(),
-          repoKey
-        };
-        saveGitHubCache(ghFileCache);
-        saveGitHubConfig(config);
-
-        updateGitHubFileSelects();
-        setGitHubStatus("success", `Found ${pdfs.length} PDF${pdfs.length !== 1 ? 's' : ''} and ${maps.length} MAP file${maps.length !== 1 ? 's' : ''}`);
-
-        // Also refresh presets to show "Last used"
-        initRepoPresets();
-
-      } catch (err) {
-        console.error("GitHub fetch error:", err);
-        setGitHubStatus("error", err.message || "Failed to fetch files from GitHub.");
-        
-        // Reset selects
-        ghFileCache = { pdfs: [], maps: [], fetchedAt: null, repoKey: null };
-        updateGitHubFileSelects();
-      } finally {
-        ghFetchFilesBtn.disabled = false;
-      }
-    }
-
-    function loadGitHubCache() {
-      try {
-        const txt = localStorage.getItem(GH_CACHE_KEY);
-        return txt ? JSON.parse(txt) : null;
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function saveGitHubCache(cache) {
-      try {
-        localStorage.setItem(GH_CACHE_KEY, JSON.stringify(cache));
-      } catch (e) {
-        console.warn("Could not save GitHub cache:", e);
-      }
-    }
-
-    ghFetchFilesBtn.addEventListener("click", fetchGitHubFiles);
-
-    ghClearCacheBtn.addEventListener("click", () => {
-      localStorage.removeItem(GH_CACHE_KEY);
-      ghFileCache = { pdfs: [], maps: [], fetchedAt: null, repoKey: null };
-      updateGitHubFileSelects();
-      setGitHubStatus("info", "Cache cleared. Click 'Fetch Available Files' to reload.");
-      showToast("GitHub cache cleared.");
-    });
-
-    /**
-     * Load a PDF from a GitHub raw URL
-     */
-    async function loadPdfFromGitHub(url, filename) {
-      if (!url) {
-        showToast("No PDF selected.");
-        return false;
-      }
-
-      setGitHubStatus("info", `Loading PDF: ${filename}...`, true);
-
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        
-        // Process the PDF (reuse existing logic)
-        loadedPdfFileName = filename;
-        
-        if (!mapping.formName) {
-          const base = filename.replace(/\.pdf$/i, "");
-          mapping.formName = base;
-          formNameInput.value = mapping.formName;
-        }
-
-        if (!mapping.pdfFileName) {
-          mapping.pdfFileName = filename;
-          pdfNameDisplay.value = mapping.pdfFileName;
-          setDirty(true);
-        } else {
-          pdfNameDisplay.value = mapping.pdfFileName;
-        }
-
-        originalPdfBytes = arrayBuffer;
-        const typedarray = new Uint8Array(arrayBuffer);
-        const loadingTask = pdfjsLib.getDocument({ data: typedarray });
-
-        const pdf = await loadingTask.promise;
-        pdfDoc = pdf;
-        currentPageNumber = 1;
-        pageCountSpan.textContent = pdf.numPages;
-
-        prevPageBtn.disabled = currentPageNumber <= 1;
-        nextPageBtn.disabled = currentPageNumber >= pdf.numPages;
-
-        renderPage(currentPageNumber);
-        renderFieldList();
-        updateFieldEditor();
-        updateAllDerivedViews();
-
-        setGitHubStatus("success", `PDF loaded: ${filename}`);
-        showToast(`PDF loaded from GitHub: ${filename}`);
-        return true;
-
-      } catch (err) {
-        console.error("Error loading PDF from GitHub:", err);
-        setGitHubStatus("error", `Failed to load PDF: ${err.message}`);
-        return false;
-      }
-    }
-
-    /**
-     * Load a MAP file from a GitHub raw URL
-     */
-    async function loadMapFromGitHub(url, filename) {
-      if (!url) {
-        showToast("No MAP selected.");
-        return false;
-      }
-
-      setGitHubStatus("info", `Loading MAP: ${filename}...`, true);
-
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch MAP: ${response.status} ${response.statusText}`);
-        }
-
-        const json = await response.json();
-        
-        if (!json || typeof json !== "object") {
-          throw new Error("Invalid MAP JSON structure.");
-        }
-
-        // Apply the mapping
-        mapping.formName = json.formName || "";
-        mapping.pdfFileName = json.pdfFileName || "";
-        mapping.pages = Array.isArray(json.pages) ? json.pages : [];
-
-        formNameInput.value = mapping.formName;
-        pdfNameDisplay.value = mapping.pdfFileName;
-
-        selectedFieldId = null;
-        fieldValues = {};
-        loadedMapFileName = filename;
-
-        renderFieldBoxes();
-        renderFieldList();
-        updateFieldEditor();
-        updateAllDerivedViews();
-        setDirty(false);
-        doAutosaveNow();
-
-        setGitHubStatus("success", `MAP loaded: ${filename}`);
-        showToast(`MAP loaded from GitHub: ${filename}`);
-        return true;
-
-      } catch (err) {
-        console.error("Error loading MAP from GitHub:", err);
-        setGitHubStatus("error", `Failed to load MAP: ${err.message}`);
-        return false;
-      }
-    }
-
-    ghLoadPdfBtn.addEventListener("click", async () => {
-      const selected = ghPdfSelect.selectedOptions[0];
-      if (!selected || !selected.value) {
-        showToast("Please select a PDF first.");
-        return;
-      }
-      await loadPdfFromGitHub(selected.value, selected.dataset.filename || selected.textContent);
-    });
-
-    ghLoadMapBtn.addEventListener("click", async () => {
-      const selected = ghMapSelect.selectedOptions[0];
-      if (!selected || !selected.value) {
-        showToast("Please select a MAP first.");
-        return;
-      }
-      await loadMapFromGitHub(selected.value, selected.dataset.filename || selected.textContent);
-    });
-
-    ghLoadBothBtn.addEventListener("click", async () => {
-      const pdfSelected = ghPdfSelect.selectedOptions[0];
-      const mapSelected = ghMapSelect.selectedOptions[0];
-
-      if (!pdfSelected || !pdfSelected.value) {
-        showToast("Please select a PDF first.");
-        return;
-      }
-      if (!mapSelected || !mapSelected.value) {
-        showToast("Please select a MAP first.");
-        return;
-      }
-
-      // Load MAP first (so the PDF can render field boxes)
-      const mapOk = await loadMapFromGitHub(mapSelected.value, mapSelected.dataset.filename || mapSelected.textContent);
-      if (!mapOk) return;
-
-      // Then load PDF
-      await loadPdfFromGitHub(pdfSelected.value, pdfSelected.dataset.filename || pdfSelected.textContent);
-    });
-
-    // ============================================
     // LOCAL STORAGE (BROWSER LIBRARY)
     // ============================================
 
@@ -1893,7 +1584,6 @@
         const arr = JSON.parse(txt);
         return Array.isArray(arr) ? arr : [];
       } catch (e) {
-        console.warn("Could not load stored mappings", e);
         return [];
       }
     }
@@ -1907,10 +1597,7 @@
       const list = loadStoredMappings();
       storedMappingsSelect.innerHTML = "";
       if (!list.length) {
-        const opt = document.createElement("option");
-        opt.value = "";
-        opt.textContent = "(No saved forms yet)";
-        storedMappingsSelect.appendChild(opt);
+        storedMappingsSelect.innerHTML = '<option value="">(No saved forms yet)</option>';
         storedMappingsSelect.disabled = true;
         loadStoredMappingBtn.disabled = true;
         return;
@@ -1929,8 +1616,7 @@
       const clone = JSON.parse(JSON.stringify(mapping));
       const list = loadStoredMappings();
       const idBase = mapping.formName || mapping.pdfFileName || "unnamed_form";
-      const safeBase = safeBaseName(idBase);
-      const id = "formaker_" + safeBase + "_" + Date.now();
+      const id = "formaker_" + safeBaseName(idBase) + "_" + Date.now();
 
       list.push({
         id,
@@ -1941,8 +1627,8 @@
       });
       saveStoredMappings(list);
       refreshStoredMappingsSelect();
-      markSaved("Saved to browser library @ " + new Date().toLocaleTimeString());
-      showToast("Saved to browser library. (Local to this browser/device)");
+      markSaved("Saved @ " + new Date().toLocaleTimeString());
+      showToast("Saved to browser library.");
     }
 
     function loadMappingById(id) {
@@ -1957,7 +1643,6 @@
 
       formNameInput.value = mapping.formName;
       pdfNameDisplay.value = mapping.pdfFileName;
-
       selectedFieldId = null;
       fieldValues = {};
       loadedMapFileName = "(browser library)";
@@ -1968,17 +1653,16 @@
       updateAllDerivedViews();
       setDirty(false);
       doAutosaveNow();
-      showToast("Loaded mapping from browser library.");
+      showToast("Loaded from browser library.");
     }
 
     saveToLibraryBtn.addEventListener("click", saveCurrentMappingToLibrary);
-    if (designerSaveBtn) designerSaveBtn.addEventListener("click", saveCurrentMappingToLibrary);
-    if (fsSaveBtn) fsSaveBtn.addEventListener("click", saveCurrentMappingToLibrary);
+    designerSaveBtn.addEventListener("click", saveCurrentMappingToLibrary);
+    fsSaveBtn.addEventListener("click", saveCurrentMappingToLibrary);
 
     loadStoredMappingBtn.addEventListener("click", () => {
       const id = storedMappingsSelect.value;
-      if (!id) return;
-      loadMappingById(id);
+      if (id) loadMappingById(id);
     });
 
     useLoadedPdfNameBtn.addEventListener("click", () => {
@@ -1987,7 +1671,7 @@
       pdfNameDisplay.value = mapping.pdfFileName;
       setDirty(true);
       updateAllDerivedViews();
-      showToast("Expected PDF name updated to match loaded PDF.");
+      showToast("Expected PDF name updated.");
     });
 
     // ============================================
@@ -1998,7 +1682,6 @@
       const data = typeof objOrText === "string" ? objOrText : JSON.stringify(objOrText, null, 2);
       const blob = new Blob([data], { type: mime });
       const url = URL.createObjectURL(blob);
-
       const a = document.createElement("a");
       a.href = url;
       a.download = filename;
@@ -2006,20 +1689,17 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
-      showToast(`Downloaded "${filename}". Check your Downloads folder.`);
+      showToast(`Downloaded "${filename}".`);
     }
 
     function downloadMapTimestamped() {
       const base = safeBaseName(mapping.formName || (mapping.pdfFileName ? mapping.pdfFileName.replace(/\.pdf$/i, "") : ""));
-      const ts = timestampNow();
-      downloadBlob(`${base}__${ts}.map.json`, mapping);
+      downloadBlob(`${base}__${timestampNow()}.map.json`, mapping);
       markSaved("Downloaded MAP @ " + new Date().toLocaleTimeString());
     }
 
     function downloadCoMapTimestamped() {
       const base = safeBaseName(mapping.formName || (mapping.pdfFileName ? mapping.pdfFileName.replace(/\.pdf$/i, "") : ""));
-      const ts = timestampNow();
       const flat = getAllFieldsFlattenedInOrder().map(f => ({
         pageNumber: f.pageNumber,
         id: f.id,
@@ -2037,16 +1717,15 @@
         pagesCount: (mapping.pages || []).length,
         fields: flat
       };
-      downloadBlob(`${base}__${ts}.comap.json`, co);
+      downloadBlob(`${base}__${timestampNow()}.comap.json`, co);
       markSaved("Downloaded CO-MAP @ " + new Date().toLocaleTimeString());
     }
 
     downloadMapBtn.addEventListener("click", downloadMapTimestamped);
     downloadCoMapBtn.addEventListener("click", downloadCoMapTimestamped);
-    if (designerDownloadMapBtn) designerDownloadMapBtn.addEventListener("click", downloadMapTimestamped);
-    if (fsDownloadMapBtn) fsDownloadMapBtn.addEventListener("click", downloadMapTimestamped);
+    designerDownloadMapBtn.addEventListener("click", downloadMapTimestamped);
+    fsDownloadMapBtn.addEventListener("click", downloadMapTimestamped);
 
-    // Quick save from dirty pill
     function quickSaveFromDirtyPill(e) {
       if (e && e.shiftKey) downloadMapTimestamped();
       else saveCurrentMappingToLibrary();
@@ -2059,7 +1738,6 @@
       }
     });
 
-    // Cmd/Ctrl+S saves to library
     document.addEventListener("keydown", (e) => {
       const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
       const mod = isMac ? e.metaKey : e.ctrlKey;
@@ -2089,7 +1767,6 @@
 
           formNameInput.value = mapping.formName;
           pdfNameDisplay.value = mapping.pdfFileName;
-
           selectedFieldId = null;
           fieldValues = {};
 
@@ -2102,7 +1779,7 @@
           showToast("MAP loaded.");
         } catch (err) {
           console.error("Error parsing map JSON:", err);
-          alert("Failed to load MAP JSON. See console for details.");
+          alert("Failed to load MAP JSON.");
         }
       };
       reader.readAsText(file);
@@ -2113,8 +1790,7 @@
       loadedPdfFileName = file.name;
 
       if (!mapping.formName) {
-        const base = file.name.replace(/\.pdf$/i, "");
-        mapping.formName = base;
+        mapping.formName = file.name.replace(/\.pdf$/i, "");
         formNameInput.value = mapping.formName;
       }
 
@@ -2122,8 +1798,6 @@
         mapping.pdfFileName = file.name;
         pdfNameDisplay.value = mapping.pdfFileName;
         setDirty(true);
-      } else {
-        pdfNameDisplay.value = mapping.pdfFileName;
       }
 
       const reader = new FileReader();
@@ -2136,7 +1810,6 @@
           pdfDoc = pdf;
           currentPageNumber = 1;
           pageCountSpan.textContent = pdf.numPages;
-
           prevPageBtn.disabled = currentPageNumber <= 1;
           nextPageBtn.disabled = currentPageNumber >= pdf.numPages;
 
@@ -2147,7 +1820,7 @@
           showToast("PDF loaded.");
         }).catch(err => {
           console.error("Error loading PDF:", err);
-          alert("Failed to load PDF. See console for details.");
+          alert("Failed to load PDF.");
         });
       };
       reader.readAsArrayBuffer(file);
@@ -2167,11 +1840,7 @@
       const viewport1 = page.getViewport({ scale: 1 });
       const availW = Math.max(320, window.innerWidth - 40);
       const availH = Math.max(240, window.innerHeight - 140);
-      const wScale = availW / viewport1.width;
-      const hScale = availH / viewport1.height;
-      let fit = Math.min(wScale, hScale);
-      fit = Math.max(0.5, Math.min(fit, 3.0));
-      return fit;
+      return Math.max(0.5, Math.min(3.0, Math.min(availW / viewport1.width, availH / viewport1.height)));
     }
 
     function renderPage(num) {
@@ -2185,15 +1854,11 @@
         pdfCanvas.height = viewport.height;
         pdfCanvas.width = viewport.width;
 
-        const renderContext = { canvasContext: ctx, viewport };
-        const renderTask = page.render(renderContext);
-
-        renderTask.promise.then(() => {
-          pageNumSpan.textContent = num;
-          prevPageBtn.disabled = num <= 1;
-          nextPageBtn.disabled = num >= pdfDoc.numPages;
-          renderFieldBoxes();
-        });
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        pageNumSpan.textContent = num;
+        prevPageBtn.disabled = num <= 1;
+        nextPageBtn.disabled = num >= pdfDoc.numPages;
+        renderFieldBoxes();
       });
     }
 
@@ -2230,9 +1895,8 @@
     document.addEventListener("keydown", (e) => {
       const active = document.querySelector(".tab-button.active");
       const tab = active ? active.getAttribute("data-tab") : "";
-      const tag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : "";
-      const typing = (tag === "input" || tag === "textarea" || tag === "select");
-      if (typing) return;
+      const tag = document.activeElement?.tagName?.toLowerCase() || "";
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
 
       if ((e.key === "f" || e.key === "F") && tab === "design") {
         e.preventDefault();
@@ -2264,10 +1928,8 @@
       return null;
     }
 
-    // Drawing new fields
     pdfCanvas.addEventListener("mousedown", (e) => {
       if (!pdfDoc) return;
-
       const rect = pdfCanvas.getBoundingClientRect();
       startX = e.clientX - rect.left;
       startY = e.clientY - rect.top;
@@ -2284,7 +1946,6 @@
       labelEl.className = "field-box-label";
       labelEl.textContent = "(new field)";
       tempBoxEl.appendChild(labelEl);
-
       pdfContainer.appendChild(tempBoxEl);
     });
 
@@ -2318,11 +1979,6 @@
         return;
       }
 
-      const normX = leftPx / pdfCanvas.width;
-      const normY = topPx / pdfCanvas.height;
-      const normW = widthPx / pdfCanvas.width;
-      const normH = heightPx / pdfCanvas.height;
-
       const pageObj = getCurrentPageObj();
       const newId = `field_${currentPageNumber}_${pageObj.fields.length + 1}`;
 
@@ -2330,10 +1986,10 @@
         id: newId,
         label: "",
         rubric: "",
-        x: normX,
-        y: normY,
-        width: normW,
-        height: normH
+        x: leftPx / pdfCanvas.width,
+        y: topPx / pdfCanvas.height,
+        width: widthPx / pdfCanvas.width,
+        height: heightPx / pdfCanvas.height
       });
       selectedFieldId = newId;
 
@@ -2348,11 +2004,10 @@
     });
 
     function renderFieldBoxes() {
-      const oldBoxes = pdfContainer.querySelectorAll(".field-box");
-      oldBoxes.forEach(b => b.remove());
+      pdfContainer.querySelectorAll(".field-box").forEach(b => b.remove());
 
       const pageObj = mapping.pages.find(p => p.pageNumber === currentPageNumber);
-      if (!pageObj || !pageObj.fields || !pageObj.fields.length) return;
+      if (!pageObj?.fields?.length) return;
 
       for (const field of pageObj.fields) {
         const box = document.createElement("div");
@@ -2362,16 +2017,10 @@
         const col = colorForId(field.id);
         box.style.borderColor = col;
         box.style.background = hexToRgba(col, 0.18);
-
-        const leftPx = field.x * pdfCanvas.width;
-        const topPx = field.y * pdfCanvas.height;
-        const widthPx = field.width * pdfCanvas.width;
-        const heightPx = field.height * pdfCanvas.height;
-
-        box.style.left = leftPx + "px";
-        box.style.top = topPx + "px";
-        box.style.width = widthPx + "px";
-        box.style.height = heightPx + "px";
+        box.style.left = (field.x * pdfCanvas.width) + "px";
+        box.style.top = (field.y * pdfCanvas.height) + "px";
+        box.style.width = (field.width * pdfCanvas.width) + "px";
+        box.style.height = (field.height * pdfCanvas.height) + "px";
 
         const labelEl = document.createElement("div");
         labelEl.className = "field-box-label";
@@ -2393,52 +2042,28 @@
     function renderFieldList() {
       fieldList.innerHTML = "";
       const pageObj = mapping.pages.find(p => p.pageNumber === currentPageNumber);
-      if (!pageObj || !pageObj.fields.length) {
-        const msg = document.createElement("div");
-        msg.style.fontSize = "0.8rem";
-        msg.style.color = "#6b7280";
-        msg.textContent = "No fields on this page yet. Draw a region on the PDF to create one.";
-        fieldList.appendChild(msg);
+      if (!pageObj?.fields?.length) {
+        fieldList.innerHTML = '<div style="font-size:0.8rem;color:#6b7280;">No fields on this page. Draw a region to create one.</div>';
         return;
       }
 
       for (const field of pageObj.fields) {
         const item = document.createElement("div");
-        item.className = "field-item";
-        if (field.id === selectedFieldId) item.classList.add("selected");
+        item.className = "field-item" + (field.id === selectedFieldId ? " selected" : "");
 
-        const header = document.createElement("div");
-        header.className = "field-item-header";
+        item.innerHTML = `
+          <div class="field-item-header">
+            <div style="display:inline-flex;align-items:center;gap:0.45rem;">
+              <span class="field-swatch" style="background:${colorForId(field.id)}"></span>
+              <span class="field-item-label">${escapeHtml(field.label || field.id)}</span>
+            </div>
+            <span class="field-item-meta">ID: ${escapeHtml(field.id)}</span>
+          </div>
+          <div style="font-size:0.72rem;color:#4b5563;">${field.rubric ? "Rubric: " + escapeHtml(field.rubric) : "(No rubric yet)"}</div>
+          <div class="field-item-actions"></div>
+        `;
 
-        const left = document.createElement("div");
-        left.style.display = "inline-flex";
-        left.style.alignItems = "center";
-        left.style.gap = "0.45rem";
-
-        const sw = document.createElement("span");
-        sw.className = "field-swatch";
-        sw.style.background = colorForId(field.id);
-        left.appendChild(sw);
-
-        const labelDiv = document.createElement("div");
-        labelDiv.className = "field-item-label";
-        labelDiv.textContent = field.label || field.id;
-        left.appendChild(labelDiv);
-
-        const metaDiv = document.createElement("div");
-        metaDiv.className = "field-item-meta";
-        metaDiv.textContent = `ID: ${field.id}`;
-
-        header.appendChild(left);
-        header.appendChild(metaDiv);
-
-        const rubricDiv = document.createElement("div");
-        rubricDiv.style.fontSize = "0.72rem";
-        rubricDiv.style.color = "#4b5563";
-        rubricDiv.textContent = field.rubric ? `Rubric: ${field.rubric}` : "(No rubric yet)";
-
-        const actions = document.createElement("div");
-        actions.className = "field-item-actions";
+        const actions = item.querySelector(".field-item-actions");
 
         const selectBtn = document.createElement("button");
         selectBtn.className = "secondary";
@@ -2459,7 +2084,6 @@
           if (idx !== -1) pageObj.fields.splice(idx, 1);
           if (selectedFieldId === field.id) selectedFieldId = null;
           delete fieldValues[field.id];
-
           setDirty(true);
           renderFieldBoxes();
           renderFieldList();
@@ -2469,23 +2093,18 @@
 
         actions.appendChild(selectBtn);
         actions.appendChild(deleteBtn);
-
-        item.appendChild(header);
-        item.appendChild(rubricDiv);
-        item.appendChild(actions);
         fieldList.appendChild(item);
       }
     }
 
     clearFieldsBtn.addEventListener("click", () => {
       const pageObj = mapping.pages.find(p => p.pageNumber === currentPageNumber);
-      if (!pageObj || !pageObj.fields.length) return;
+      if (!pageObj?.fields?.length) return;
       if (!confirm("Clear all fields on this page?")) return;
 
       for (const f of pageObj.fields) delete fieldValues[f.id];
       pageObj.fields = [];
       selectedFieldId = null;
-
       setDirty(true);
       renderFieldBoxes();
       renderFieldList();
@@ -2509,10 +2128,9 @@
         updateFieldBtn.disabled = true;
         return;
       }
-      const { field } = res;
-      fieldIdInput.value = field.id;
-      fieldLabelInput.value = field.label || "";
-      fieldRubricInput.value = field.rubric || "";
+      fieldIdInput.value = res.field.id;
+      fieldLabelInput.value = res.field.label || "";
+      fieldRubricInput.value = res.field.rubric || "";
       updateFieldBtn.disabled = false;
     }
 
@@ -2523,12 +2141,9 @@
 
       const { field } = res;
       const newId = fieldIdInput.value.trim() || field.id;
-      const newLabel = fieldLabelInput.value.trim();
-      const newRubric = fieldRubricInput.value.trim();
 
       if (newId !== field.id) {
-        const exists = getFieldById(newId);
-        if (exists) { alert("That field ID is already in use. Choose another."); return; }
+        if (getFieldById(newId)) { alert("ID already in use."); return; }
         if (fieldValues[field.id] !== undefined) {
           fieldValues[newId] = fieldValues[field.id];
           delete fieldValues[field.id];
@@ -2537,8 +2152,8 @@
         selectedFieldId = newId;
       }
 
-      field.label = newLabel;
-      field.rubric = newRubric;
+      field.label = fieldLabelInput.value.trim();
+      field.rubric = fieldRubricInput.value.trim();
 
       setDirty(true);
       renderFieldBoxes();
@@ -2560,152 +2175,81 @@
       ioFieldList.innerHTML = "";
       const all = getAllFieldsFlattenedInOrder();
       if (!all.length) {
-        const msg = document.createElement("div");
-        msg.style.color = "#6b7280";
-        msg.style.fontSize = "0.85rem";
-        msg.textContent = "No fields yet. Create fields in Designer or load a MAP.";
-        ioFieldList.appendChild(msg);
+        ioFieldList.innerHTML = '<div style="color:#6b7280;font-size:0.85rem;">No fields yet.</div>';
         return;
       }
 
       for (const f of all) {
         const row = document.createElement("div");
         row.className = "ioFieldRow";
-
-        const sw = document.createElement("span");
-        sw.className = "field-swatch";
-        sw.style.background = colorForId(f.id);
-
-        const left = document.createElement("div");
-        left.className = "ioFieldLeft";
-
-        const top = document.createElement("div");
-        top.style.display = "flex";
-        top.style.alignItems = "baseline";
-        top.style.gap = "0.6rem";
-        top.style.flexWrap = "wrap";
-
-        const fid = document.createElement("span");
-        fid.className = "ioFieldId";
-        fid.textContent = f.id;
-
-        const flabel = document.createElement("span");
-        flabel.className = "ioFieldLabel";
-        flabel.textContent = f.label || "(no label)";
-
-        top.appendChild(fid);
-        top.appendChild(flabel);
-
-        const meta = document.createElement("div");
-        meta.className = "ioFieldMeta";
-        meta.textContent = `Page ${f.pageNumber}`;
-
-        left.appendChild(top);
-        left.appendChild(meta);
-
-        row.appendChild(sw);
-        row.appendChild(left);
-
-        row.title = [`Page: ${f.pageNumber}`, `ID: ${f.id}`, f.label ? `Label: ${f.label}` : "", f.rubric ? `Rubric: ${f.rubric}` : "Rubric: (none)"].filter(Boolean).join("\n");
+        row.title = `Page: ${f.pageNumber}\nID: ${f.id}\n${f.label ? "Label: " + f.label : ""}\nRubric: ${f.rubric || "(none)"}`;
+        row.innerHTML = `
+          <span class="field-swatch" style="background:${colorForId(f.id)}"></span>
+          <div class="ioFieldLeft">
+            <div style="display:flex;align-items:baseline;gap:0.6rem;flex-wrap:wrap;">
+              <span class="ioFieldId">${escapeHtml(f.id)}</span>
+              <span class="ioFieldLabel">${escapeHtml(f.label || "(no label)")}</span>
+            </div>
+            <div class="ioFieldMeta">Page ${f.pageNumber}</div>
+          </div>
+        `;
         ioFieldList.appendChild(row);
       }
     }
 
     async function renderIOSketchPDF() {
       ioSketchWrap.innerHTML = "";
-
       if (!pdfDoc) {
-        const msg = document.createElement("div");
-        msg.style.color = "#6b7280";
-        msg.style.fontSize = "0.88rem";
-        msg.textContent = "Choose a PDF to see the sketch preview here.";
-        ioSketchWrap.appendChild(msg);
+        ioSketchWrap.innerHTML = '<div style="color:#6b7280;font-size:0.88rem;">Choose a PDF to see preview.</div>';
         return;
       }
 
-      const pagesWithFields = (mapping.pages || [])
-        .filter(p => (p.fields || []).length)
-        .map(p => p.pageNumber)
-        .sort((a,b) => a - b);
-
+      const pagesWithFields = (mapping.pages || []).filter(p => p.fields?.length).map(p => p.pageNumber).sort((a,b) => a - b);
       const pagesToShow = pagesWithFields.length ? pagesWithFields : [1];
 
       for (const pageNumber of pagesToShow) {
         const panel = document.createElement("div");
         panel.className = "thumbPanel";
 
-        const head = document.createElement("div");
-        head.className = "thumbHeader";
-        const left = document.createElement("div");
-        left.textContent = `Page ${pageNumber}`;
-        const right = document.createElement("div");
-        right.style.color = "#6b7280";
         const count = (mapping.pages.find(p => p.pageNumber === pageNumber)?.fields || []).length;
-        right.textContent = `${count} field${count === 1 ? "" : "s"}`;
-        head.appendChild(left);
-        head.appendChild(right);
+        panel.innerHTML = `
+          <div class="thumbHeader">
+            <div>Page ${pageNumber}</div>
+            <div style="color:#6b7280;">${count} field${count === 1 ? "" : "s"}</div>
+          </div>
+          <div class="thumbStage">
+            <canvas class="thumbCanvas"></canvas>
+            <div class="thumbOverlay"></div>
+          </div>
+        `;
 
-        const stage = document.createElement("div");
-        stage.className = "thumbStage";
-
-        const canvas = document.createElement("canvas");
-        canvas.className = "thumbCanvas";
-
-        const overlay = document.createElement("div");
-        overlay.className = "thumbOverlay";
-
-        stage.appendChild(canvas);
-        stage.appendChild(overlay);
-
-        panel.appendChild(head);
-        panel.appendChild(stage);
         ioSketchWrap.appendChild(panel);
+
+        const canvas = panel.querySelector(".thumbCanvas");
+        const overlay = panel.querySelector(".thumbOverlay");
 
         try {
           const page = await pdfDoc.getPage(pageNumber);
           const baseViewport = page.getViewport({ scale: 1 });
-
-          const targetPx = 900;
-          const thumbScale = Math.max(0.2, Math.min(2.0, targetPx / baseViewport.width));
+          const thumbScale = Math.max(0.2, Math.min(2.0, 900 / baseViewport.width));
           const viewport = page.getViewport({ scale: thumbScale });
 
           canvas.width = viewport.width;
           canvas.height = viewport.height;
+          await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
 
-          const cctx = canvas.getContext("2d");
-          await page.render({ canvasContext: cctx, viewport }).promise;
-
-          const pageObj = mapping.pages.find(p => p.pageNumber === pageNumber);
-          const fields = pageObj?.fields || [];
-
-          overlay.innerHTML = "";
+          const fields = mapping.pages.find(p => p.pageNumber === pageNumber)?.fields || [];
           for (const f of fields) {
             const col = colorForId(f.id);
-
             const box = document.createElement("div");
             box.className = "thumbBox";
-            box.style.left = (f.x * 100) + "%";
-            box.style.top = (f.y * 100) + "%";
-            box.style.width = (f.width * 100) + "%";
-            box.style.height = (f.height * 100) + "%";
-            box.style.borderColor = col;
-            box.style.background = hexToRgba(col, 0.14);
-
-            const lab = document.createElement("div");
-            lab.className = "thumbBoxLabel";
-            lab.textContent = (f.label || f.id);
-            box.appendChild(lab);
-
+            box.style.cssText = `left:${f.x*100}%;top:${f.y*100}%;width:${f.width*100}%;height:${f.height*100}%;border-color:${col};background:${hexToRgba(col,0.14)};`;
             box.title = `${f.id}${f.label ? " • " + f.label : ""}${f.rubric ? "\n" + f.rubric : ""}`;
+            box.innerHTML = `<div class="thumbBoxLabel">${escapeHtml(f.label || f.id)}</div>`;
             overlay.appendChild(box);
           }
         } catch (err) {
           console.warn("IO sketch render error:", err);
-          const warn = document.createElement("div");
-          warn.style.color = "#e5e7eb";
-          warn.style.fontSize = "0.85rem";
-          warn.textContent = "Could not render this PDF page preview.";
-          stage.appendChild(warn);
         }
       }
     }
@@ -2715,53 +2259,37 @@
     // ============================================
 
     function renderFormPreview() {
-      formPreviewContainer.innerHTML = "";
-      const title = document.createElement("h3");
-      title.textContent = mapping.formName || "(Unnamed form)";
-      formPreviewContainer.appendChild(title);
-
-      const pdfInfo = document.createElement("div");
-      pdfInfo.style.fontSize = "0.8rem";
-      pdfInfo.style.color = "#6b7280";
-      pdfInfo.textContent = loadedPdfFileName ? `Loaded PDF: ${loadedPdfFileName}` : "PDF not loaded yet.";
-      formPreviewContainer.appendChild(pdfInfo);
+      formPreviewContainer.innerHTML = `
+        <h3>${escapeHtml(mapping.formName || "(Unnamed form)")}</h3>
+        <div style="font-size:0.8rem;color:#6b7280;">${loadedPdfFileName ? "Loaded PDF: " + loadedPdfFileName : "PDF not loaded yet."}</div>
+      `;
 
       if (!mapping.pages.length) {
-        const msg = document.createElement("div");
-        msg.style.marginTop = "0.6rem";
-        msg.style.fontSize = "0.85rem";
-        msg.textContent = "No fields defined yet. Create some in Designer or load a MAP.";
-        formPreviewContainer.appendChild(msg);
+        formPreviewContainer.innerHTML += '<div style="margin-top:0.6rem;font-size:0.85rem;">No fields defined yet.</div>';
         return;
       }
 
       for (const page of (mapping.pages || []).slice().sort((a,b) => a.pageNumber - b.pageNumber)) {
-        if (!page.fields || !page.fields.length) continue;
+        if (!page.fields?.length) continue;
 
-        const pageHeader = document.createElement("h4");
-        pageHeader.textContent = `Page ${page.pageNumber}`;
-        formPreviewContainer.appendChild(pageHeader);
+        const header = document.createElement("h4");
+        header.textContent = `Page ${page.pageNumber}`;
+        formPreviewContainer.appendChild(header);
 
         for (const field of page.fields) {
           const wrap = document.createElement("div");
           wrap.className = "form-field-preview";
-
-          const labelEl = document.createElement("label");
-          labelEl.textContent = field.label || field.id;
-
-          const rubricEl = document.createElement("div");
-          rubricEl.innerHTML = `<small>${escapeHtml(field.rubric || "(no rubric given)")}</small>`;
+          wrap.innerHTML = `
+            <label>${escapeHtml(field.label || field.id)}</label>
+            <div><small>${escapeHtml(field.rubric || "(no rubric given)")}</small></div>
+          `;
 
           const inputEl = document.createElement("textarea");
           inputEl.placeholder = "Value for this field...";
           inputEl.rows = 2;
           inputEl.style.fontSize = "0.8rem";
-          inputEl.dataset.fieldId = field.id;
           inputEl.value = fieldValues[field.id] || "";
           inputEl.addEventListener("input", () => { fieldValues[field.id] = inputEl.value; });
-
-          wrap.appendChild(labelEl);
-          wrap.appendChild(rubricEl);
           wrap.appendChild(inputEl);
           formPreviewContainer.appendChild(wrap);
         }
@@ -2769,9 +2297,8 @@
     }
 
     async function generateFilledPdf() {
-      if (!originalPdfBytes) { alert("Please load a PDF first (Tab 0 or Designer)."); return; }
-      if (!mapping.pages.length) { alert("No fields defined in the mapping."); return; }
-      if (typeof PDFLib === "undefined") { alert("pdf-lib is not loaded."); return; }
+      if (!originalPdfBytes) { alert("Please load a PDF first."); return; }
+      if (!mapping.pages.length) { alert("No fields defined."); return; }
 
       const { PDFDocument, StandardFonts, rgb } = PDFLib;
       const pdfDocLocal = await PDFDocument.load(originalPdfBytes);
@@ -2789,29 +2316,16 @@
           const value = fieldValues[field.id] || "";
           if (!value) continue;
 
-          const boxX = field.x * width;
-          const boxYFromTop = field.y * height;
+          const boxX = field.x * width + 2;
+          const topY = height - (field.y * height) - 2;
           const boxW = field.width * width;
-
-          const margin = 2;
-          const textX = boxX + margin;
-          const topY = height - boxYFromTop - margin;
           const fontSize = 10;
           const lineHeight = fontSize + 2;
 
-          const lines = String(value).split("\n");
           let currentY = topY - fontSize;
-
-          for (const line of lines) {
+          for (const line of String(value).split("\n")) {
             if (currentY < 0) break;
-            page.drawText(line, {
-              x: textX,
-              y: currentY,
-              size: fontSize,
-              font,
-              color: rgb(0, 0, 0),
-              maxWidth: boxW - margin * 2
-            });
+            page.drawText(line, { x: boxX, y: currentY, size: fontSize, font, color: rgb(0,0,0), maxWidth: boxW - 4 });
             currentY -= lineHeight;
           }
         }
@@ -2820,7 +2334,6 @@
       const pdfBytes = await pdfDocLocal.save();
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-
       const a = document.createElement("a");
       a.href = url;
       a.download = safeBaseName(mapping.formName || "filled_form") + "_filled.pdf";
@@ -2828,14 +2341,13 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-
-      showToast("Filled PDF downloaded. Check your Downloads folder.");
+      showToast("Filled PDF downloaded.");
     }
 
     downloadFilledPdfBtn.addEventListener("click", () => {
       generateFilledPdf().catch(err => {
         console.error("Error generating filled PDF:", err);
-        alert("Failed to generate filled PDF. See console for details.");
+        alert("Failed to generate filled PDF.");
       });
     });
 
@@ -2845,7 +2357,7 @@
 
     buildPromptBtn.addEventListener("click", () => {
       const srcText = aiSourceTextInput.value || "";
-      if (!mapping.pages.length) { alert("No fields in mapping. Define fields first or load a MAP."); return; }
+      if (!mapping.pages.length) { alert("No fields in mapping."); return; }
 
       const fieldsSummary = {};
       for (const page of mapping.pages) {
@@ -2854,10 +2366,7 @@
         }
       }
 
-      const formName = mapping.formName || "(unnamed form)";
-      const pdfName = mapping.pdfFileName || "";
-
-      const lines = [
+      aiPromptTextarea.value = [
         "SYSTEM:",
         "You are a structured information extraction engine.",
         "You receive free-text source content and must return a single JSON object.",
@@ -2868,8 +2377,8 @@
         "- Do not include any explanation, comments, or extra keys.",
         "- If the source text does not contain enough information for a field, make an educated guess followed by '*'",
         "",
-        `FORM NAME: ${formName}`,
-        pdfName ? `EXPECTED PDF FILE NAME: ${pdfName}` : "",
+        `FORM NAME: ${mapping.formName || "(unnamed form)"}`,
+        mapping.pdfFileName ? `EXPECTED PDF FILE NAME: ${mapping.pdfFileName}` : "",
         "",
         "FIELDS (by field id):",
         JSON.stringify(fieldsSummary, null, 2),
@@ -2879,63 +2388,51 @@
         '"""',
         srcText,
         '"""'
-      ];
-
-      aiPromptTextarea.value = lines.join("\n");
-      showToast("Prompt built. Copy it or open in selected LLM.");
+      ].join("\n");
+      showToast("Prompt built.");
     });
 
     applyJsonBtn.addEventListener("click", () => {
-      const raw = aiJsonResponseInput.value.trim();
+      let raw = aiJsonResponseInput.value.trim();
       if (!raw) { alert("Paste JSON from the AI first."); return; }
 
-      let obj;
-      // Try to extract JSON from markdown code blocks if present
-      let cleaned = raw;
-      const codeBlockMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (codeBlockMatch) {
-        cleaned = codeBlockMatch[1].trim();
-      }
+      // Strip markdown code blocks if present
+      const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (match) raw = match[1].trim();
 
-      try { obj = JSON.parse(cleaned); }
-      catch { alert("Could not parse JSON. Check for syntax errors."); return; }
+      let obj;
+      try { obj = JSON.parse(raw); }
+      catch { alert("Could not parse JSON."); return; }
 
       if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
         alert("Expected a JSON object with field IDs as keys.");
         return;
       }
 
-      let appliedCount = 0;
+      let count = 0;
       for (const page of mapping.pages) {
         for (const field of (page.fields || [])) {
-          if (Object.prototype.hasOwnProperty.call(obj, field.id)) {
-            const v = obj[field.id];
-            fieldValues[field.id] = v == null ? "" : String(v);
-            appliedCount++;
+          if (field.id in obj) {
+            fieldValues[field.id] = obj[field.id] == null ? "" : String(obj[field.id]);
+            count++;
           }
         }
       }
 
-      if (!appliedCount) {
-        alert("No matching field IDs found in the JSON. Make sure keys match the mapping's field IDs.");
-      } else {
+      if (!count) alert("No matching field IDs found.");
+      else {
         renderFormPreview();
-        showToast(`Applied values for ${appliedCount} fields. Review in Tab 2.`);
+        showToast(`Applied ${count} field values. Review in Tab 2.`);
       }
     });
 
-    // Field reference list (AI tab)
     function renderFieldReferenceList() {
       const q = (fieldRefSearch.value || "").trim().toLowerCase();
       const all = getAllFieldsFlattenedInOrder();
 
       fieldRefList.innerHTML = "";
       if (!all.length) {
-        const msg = document.createElement("div");
-        msg.style.fontSize = "0.85rem";
-        msg.style.color = "#6b7280";
-        msg.textContent = "No fields yet. Create fields or load a MAP.";
-        fieldRefList.appendChild(msg);
+        fieldRefList.innerHTML = '<div style="font-size:0.85rem;color:#6b7280;">No fields yet.</div>';
         return;
       }
 
@@ -2943,18 +2440,15 @@
         (x.id || "").toLowerCase().includes(q) ||
         (x.label || "").toLowerCase().includes(q) ||
         (x.rubric || "").toLowerCase().includes(q) ||
-        (`page ${x.pageNumber}`).includes(q)
+        `page ${x.pageNumber}`.includes(q)
       ) : all;
 
       for (const item of filtered) {
         const div = document.createElement("div");
         div.className = "field-ref-item";
-        div.title = [`Page: ${item.pageNumber}`, `ID: ${item.id}`, item.label ? `Label: ${item.label}` : "", item.rubric ? `Rubric: ${item.rubric}` : "Rubric: (none)"].filter(Boolean).join("\n");
-
-        const sw = `<span class="field-swatch" style="background:${colorForId(item.id)}; vertical-align:middle;"></span>`;
-
+        div.title = `Page: ${item.pageNumber}\nID: ${item.id}\n${item.label ? "Label: " + item.label : ""}\nRubric: ${item.rubric || "(none)"}`;
         div.innerHTML = `
-          <div class="field-ref-id">${sw} ${escapeHtml(item.id)}</div>
+          <div class="field-ref-id"><span class="field-swatch" style="background:${colorForId(item.id)};vertical-align:middle;"></span> ${escapeHtml(item.id)}</div>
           <div class="field-ref-label">${escapeHtml(item.label || "(no label)")}</div>
           <div class="field-ref-meta">Page ${item.pageNumber} • hover for rubric</div>
         `;
@@ -2967,46 +2461,41 @@
     async function copyTextToClipboard(text) {
       try { await navigator.clipboard.writeText(text); return true; }
       catch {
-        try {
-          const ta = document.createElement("textarea");
-          ta.value = text;
-          ta.style.position = "fixed";
-          ta.style.left = "-9999px";
-          document.body.appendChild(ta);
-          ta.focus();
-          ta.select();
-          const ok = document.execCommand("copy");
-          document.body.removeChild(ta);
-          return ok;
-        } catch { return false; }
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        return ok;
       }
     }
 
     copyPromptBtn.addEventListener("click", async () => {
-      const txt = aiPromptTextarea.value || "";
+      const txt = aiPromptTextarea.value;
       if (!txt.trim()) { alert("Build the AI prompt first."); return; }
-      showToast((await copyTextToClipboard(txt)) ? "Prompt copied to clipboard." : "Could not auto-copy. Copy manually.");
+      showToast((await copyTextToClipboard(txt)) ? "Prompt copied." : "Could not copy.");
     });
 
     copyFieldIdsBtn.addEventListener("click", async () => {
       const txt = getAllFieldsFlattenedInOrder().map(x => x.id).join("\n");
-      showToast((await copyTextToClipboard(txt)) ? "Field IDs copied." : "Could not auto-copy.");
+      showToast((await copyTextToClipboard(txt)) ? "Field IDs copied." : "Could not copy.");
     });
 
     copyFieldRubricsBtn.addEventListener("click", async () => {
       const txt = getAllFieldsFlattenedInOrder()
         .map(x => `- ${x.id} (${x.label || "no label"}) [Page ${x.pageNumber}]\n  Rubric: ${x.rubric || "(none)"}`)
         .join("\n");
-      showToast((await copyTextToClipboard(txt)) ? "Fields + rubrics copied." : "Could not auto-copy.");
+      showToast((await copyTextToClipboard(txt)) ? "Fields + rubrics copied." : "Could not copy.");
     });
 
-    // LLM radios
     const LLM_TARGETS = [
       { key: "chatgpt", name: "ChatGPT", url: "https://chatgpt.com/" },
       { key: "claude",  name: "Claude",  url: "https://claude.ai/new" },
       { key: "copilot", name: "Copilot", url: "https://copilot.microsoft.com/" },
       { key: "gemini",  name: "Gemini",  url: "https://gemini.google.com/app" },
-      { key: "kimi",    name: "Kimi",    url: "https://kimi.moonshot.cn/" },
       { key: "deepseek",name: "DeepSeek",url: "https://chat.deepseek.com/" },
       { key: "xai",     name: "xAI (Grok)", url: "https://grok.com/" }
     ];
@@ -3015,42 +2504,24 @@
       llmRadios.innerHTML = "";
       for (const t of LLM_TARGETS) {
         const wrap = document.createElement("label");
-        wrap.style.display = "inline-flex";
-        wrap.style.alignItems = "center";
-        wrap.style.gap = "0.35rem";
-        wrap.style.cursor = "pointer";
-
-        const rb = document.createElement("input");
-        rb.type = "radio";
-        rb.name = "llm_choice";
-        rb.value = t.key;
-        rb.checked = (t.key === "chatgpt");
-
-        const txt = document.createElement("span");
-        txt.textContent = t.name;
-
-        wrap.appendChild(rb);
-        wrap.appendChild(txt);
+        wrap.style.cssText = "display:inline-flex;align-items:center;gap:0.35rem;cursor:pointer;";
+        wrap.innerHTML = `<input type="radio" name="llm_choice" value="${t.key}" ${t.key === "chatgpt" ? "checked" : ""}><span>${t.name}</span>`;
         llmRadios.appendChild(wrap);
       }
     }
 
-    function getSelectedLLMUrl() {
-      const sel = llmRadios.querySelector('input[type="radio"][name="llm_choice"]:checked');
-      const key = sel ? sel.value : "chatgpt";
-      return (LLM_TARGETS.find(x => x.key === key) || LLM_TARGETS[0]).url;
-    }
-
     openLLMBtn.addEventListener("click", async () => {
-      const prompt = aiPromptTextarea.value || "";
+      const prompt = aiPromptTextarea.value;
       if (!prompt.trim()) { alert("Build the AI prompt first."); return; }
 
       const ok = await copyTextToClipboard(prompt);
-      const url = getSelectedLLMUrl();
+      const sel = llmRadios.querySelector('input[name="llm_choice"]:checked');
+      const key = sel?.value || "chatgpt";
+      const url = (LLM_TARGETS.find(x => x.key === key) || LLM_TARGETS[0]).url;
       const w = window.open(url, "_blank");
-      if (!ok) alert("Tab opened. Could not auto-copy prompt; copy it manually from the prompt box.");
-      else if (!w) alert("Prompt copied. Popups were blocked; allow popups and click again.");
-      else showToast("Prompt copied. Paste it into the opened LLM tab.");
+      if (!ok) alert("Tab opened. Could not auto-copy; copy manually.");
+      else if (!w) alert("Prompt copied. Popups blocked; allow and retry.");
+      else showToast("Prompt copied. Paste it in the LLM tab.");
     });
 
     // ============================================
@@ -3058,36 +2529,19 @@
     // ============================================
 
     function init() {
-      pdfCanvas.width = 1; pdfCanvas.height = 1;
-      ctx.clearRect(0,0,1,1);
+      pdfCanvas.width = 1;
+      pdfCanvas.height = 1;
+      ctx.clearRect(0, 0, 1, 1);
       
       initLLMRadios();
-      initRepoPresets();
       refreshStoredMappingsSelect();
-
-      // Restore saved GitHub config
-      const savedConfig = loadGitHubConfig();
-      if (savedConfig) {
-        setGitHubConfig(savedConfig);
-      }
-
-      // Restore cached file list if still valid
-      const cached = loadGitHubCache();
-      if (cached && cached.fetchedAt) {
-        const age = Date.now() - cached.fetchedAt;
-        if (age < 5 * 60 * 1000) {
-          ghFileCache = cached;
-          updateGitHubFileSelects();
-          setGitHubStatus("info", "Using cached file list (< 5 min old). Click 'Fetch' to refresh.");
-        }
-      }
-
-      // Auto-restore last autosave if appropriate
       maybeRestoreAutosaveOnInit();
-
       updateAllDerivedViews();
       renderFieldList();
       updateFieldEditor();
+
+      // AUTO-FETCH REPO FILES ON PAGE LOAD
+      fetchRepoFiles();
     }
 
     init();
