@@ -1,0 +1,2306 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LLM Form Mapper (PDF → JSON Map → Filled PDF)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- pdf.js from CDN (v2.6.347, classic script) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
+  <!-- pdf-lib for writing text onto PDF and saving -->
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f7;
+      color: #222;
+    }
+
+    header {
+      background: #1f2933;
+      color: white;
+      padding: 0.8rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 5;
+    }
+    header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+    header span { font-size: 0.85rem; opacity: 0.8; }
+
+    /* Global status bar (simple) */
+    #statusBar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.5rem 1.5rem;
+      border-bottom: 1px solid #d1d5db;
+      background: #ffffff;
+      position: relative;
+      z-index: 4;
+      font-size: 0.85rem;
+      color: #111827;
+      flex-wrap: wrap;
+    }
+
+    #statusLeft, #statusRight {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #f9fafb;
+      font-size: 0.78rem;
+      color: #111827;
+      white-space: nowrap;
+    }
+
+    .dirty-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: #7f1d1d;
+      font-size: 0.78rem;
+      user-select: none;
+      cursor: pointer;
+    }
+
+    .dirty-indicator:focus {
+      outline: 2px solid #93c5fd;
+      outline-offset: 2px;
+    }
+
+    .dirty-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #dc2626;
+      box-shadow: 0 0 0 rgba(220,38,38,0.0);
+      animation: pulseRed 1.0s infinite;
+    }
+
+    @keyframes pulseRed {
+      0%   { box-shadow: 0 0 0 0 rgba(220,38,38,0.55); }
+      70%  { box-shadow: 0 0 0 10px rgba(220,38,38,0.0); }
+      100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.0); }
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #d1d5db;
+      background: #e5e7eb;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 3;
+    }
+
+    .tab-button {
+      padding: 0.6rem 1.2rem;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-right: 1px solid #d1d5db;
+      outline: none;
+      white-space: nowrap;
+    }
+
+    .tab-button.active {
+      background: #ffffff;
+      border-bottom: 2px solid #2563eb;
+      color: #111827;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 1rem 1.5rem 1.5rem 1.5rem;
+      position: relative;
+      z-index: 2;
+    }
+    .tab-content.active { display: block; }
+
+    .panel {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 0.8rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      box-sizing: border-box;
+    }
+
+    .panel h2, .panel h3, .panel h4 {
+      margin-top: 0;
+      font-size: 1rem;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      margin-top: 0.4rem;
+      margin-bottom: 0.1rem;
+      color: #374151;
+    }
+
+    input[type="text"], textarea, select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.35rem 0.45rem;
+      border-radius: 4px;
+      border: 1px solid #d1d5db;
+      font-size: 0.85rem;
+    }
+
+    textarea { resize: vertical; min-height: 60px; }
+    input[type="file"] { font-size: 0.8rem; }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      padding: 0.35rem 0.6rem;
+      font-size: 0.8rem;
+      margin-top: 0.35rem;
+      background: #2563eb;
+      color: white;
+    }
+    button.secondary { background: #6b7280; }
+    button.danger { background: #dc2626; }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    .split { display: flex; gap: 1rem; align-items: flex-start; }
+
+    /* Designer layout */
+    #pdfPanel { flex: 2; min-width: 300px; }
+    #configPanel { flex: 1; min-width: 260px; max-width: 380px; }
+
+    #pdfContainer {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+      background: #111827;
+    }
+
+    #pdfCanvas {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      background: #1f2933;
+    }
+
+    .field-box {
+      position: absolute;
+      border: 2px solid rgba(56,189,248,0.9);
+      background: rgba(56,189,248,0.20);
+      box-sizing: border-box;
+      pointer-events: auto;
+      cursor: pointer;
+    }
+
+    .field-box.selected {
+      border-color: rgba(34,197,94,0.95);
+      background: rgba(34,197,94,0.20);
+    }
+
+    .field-box-label {
+      position: absolute;
+      top: -16px;
+      left: 0;
+      background: rgba(15,23,42,0.9);
+      color: white;
+      font-size: 0.65rem;
+      padding: 0 4px;
+      border-radius: 3px 3px 0 0;
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .field-list {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 0.25rem;
+      background: #f9fafb;
+      margin-top: 0.4rem;
+    }
+
+    .field-item {
+      padding: 0.3rem 0.4rem;
+      margin-bottom: 0.2rem;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      border: 1px solid transparent;
+      background: #ffffff;
+    }
+
+    .field-item.selected {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    .field-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .field-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+      border: 1px solid rgba(0,0,0,0.15);
+      flex: 0 0 auto;
+    }
+
+    .field-item-label { font-weight: 600; }
+    .field-item-meta { color: #6b7280; }
+
+    .field-item-actions { display: flex; gap: 0.25rem; margin-top: 0.15rem; }
+    .field-item-actions button { padding: 0.2rem 0.35rem; font-size: 0.7rem; }
+
+    .page-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.4rem;
+      font-size: 0.8rem;
+      color: #e5e7eb;
+    }
+    .page-controls button { background: #4b5563; color: #f9fafb; }
+
+    /* Tab 0: PDF sketch preview (actual PDF thumbnails + overlay) */
+    .io-file-row {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+    .io-file-col { flex: 1; min-width: 260px; }
+
+    .thumbWrap {
+      margin-top: 0.8rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.9rem;
+    }
+
+    .thumbPanel {
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #f9fafb;
+    }
+
+    .thumbHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.6rem;
+      padding: 0.5rem 0.6rem;
+      border-bottom: 1px solid #e5e7eb;
+      background: #ffffff;
+      font-size: 0.84rem;
+    }
+
+    .thumbStage {
+      position: relative;
+      padding: 0.6rem;
+      background: #0b1120;
+    }
+
+    .thumbCanvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      background: #111827;
+    }
+
+    .thumbOverlay {
+      position: absolute;
+      inset: 0.6rem;
+      pointer-events: none;
+    }
+
+    .thumbBox {
+      position: absolute;
+      border: 2px solid rgba(255,255,255,0.8);
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    .thumbBoxLabel {
+      position: absolute;
+      top: -14px;
+      left: 0;
+      font-size: 10px;
+      padding: 0 4px;
+      border-radius: 3px;
+      background: rgba(15,23,42,0.92);
+      color: #fff;
+      max-width: 220px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Tab 0: Field list at bottom */
+    .ioFieldList {
+      margin-top: 1rem;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 0.8rem;
+    }
+
+    .ioFieldRow {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.45rem;
+      border-radius: 8px;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 0.35rem;
+      font-size: 0.82rem;
+    }
+
+    .ioFieldLeft {
+      display: flex;
+      flex-direction: column;
+      gap: 0.12rem;
+      flex: 1;
+    }
+
+    .ioFieldId {
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color:#0f172a;
+      white-space: nowrap;
+    }
+
+    .ioFieldLabel { font-weight: 600; color:#111827; }
+    .ioFieldMeta  { color:#6b7280; font-size: 0.78rem; }
+
+    /* Preview */
+    #formPreviewContainer { max-width: 900px; }
+    .form-field-preview {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 0.5rem;
+      margin-bottom: 0.4rem;
+      background: #ffffff;
+    }
+    .form-field-preview label { margin-top: 0; }
+    .form-field-preview small { color: #6b7280; }
+
+    #mapJsonTextarea {
+      width: 100%;
+      box-sizing: border-box;
+      min-height: 240px;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      background: #0b1120;
+      color: #e5e7eb;
+      border-radius: 6px;
+      padding: 0.5rem;
+      border: 1px solid #1f2937;
+      white-space: pre;
+    }
+
+    /* AI: right side field reference */
+    .sticky { position: sticky; top: 1rem; }
+
+    .field-ref-list {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      background: #f9fafb;
+      padding: 0.35rem;
+      max-height: 72vh;
+      overflow-y: auto;
+    }
+
+    .field-ref-item {
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 0.4rem 0.5rem;
+      margin-bottom: 0.35rem;
+      background: #ffffff;
+      font-size: 0.8rem;
+    }
+    .field-ref-item:hover { border-color: #93c5fd; background: #eff6ff; }
+
+    .field-ref-id {
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .field-ref-label { color:#111827; font-weight:600; }
+    .field-ref-meta { color:#6b7280; font-size:0.78rem; margin-top:0.15rem; }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      background: rgba(15,23,42,0.95);
+      color: #e5e7eb;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.20);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease-in-out;
+      z-index: 9999;
+      max-width: 92vw;
+    }
+    #toast.show { opacity: 1; }
+
+    /* Mapping fullscreen "mode" (CSS-based) */
+    body.mapping-fullscreen header,
+    body.mapping-fullscreen #statusBar,
+    body.mapping-fullscreen .tabs,
+    body.mapping-fullscreen #configPanel {
+      display: none !important;
+    }
+
+    body.mapping-fullscreen #tab-design { padding: 0 !important; }
+
+    body.mapping-fullscreen #pdfPanel {
+      position: fixed;
+      inset: 0;
+      margin: 0;
+      border-radius: 0;
+      z-index: 9990;
+      overflow: auto;
+      padding: 0.8rem;
+      background: #0b1120;
+    }
+
+    body.mapping-fullscreen #pdfPanel h2,
+    body.mapping-fullscreen #pdfPanel small,
+    body.mapping-fullscreen #pdfPanel label { color: #e5e7eb; }
+
+    body.mapping-fullscreen #pdfPanel .panel {
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+    }
+
+    body.mapping-fullscreen #pdfContainer {
+      border-color: #1f2937;
+      background: #111827;
+    }
+
+    .fs-exit-bar {
+      display: none;
+      margin-bottom: 0.6rem;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    body.mapping-fullscreen .fs-exit-bar { display: flex; }
+
+    @media (max-width: 1100px) {
+      .split { flex-direction: column; }
+      #configPanel { max-width: 100%; }
+      .io-file-row { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>LLM Form Mapper</h1>
+    <span>PDF → mapped fields → JSON schema → filled PDF (no backend)</span>
+  </header>
+
+  <div id="statusBar">
+    <div id="statusLeft">
+      <span id="countsPill" class="pill">Fields: 0 • Pages: 0</span>
+      <span id="savedPill" class="pill">Saved: (not yet)</span>
+      <span
+        id="dirtyPill"
+        class="dirty-indicator"
+        role="button"
+        tabindex="0"
+        style="display:none;"
+        title="Unsaved mapping changes. Click to Save to browser library. Shift-click to Download MAP."
+      >
+        <span class="dirty-dot"></span>
+        Unsaved changes — click to save
+      </span>
+    </div>
+    <div id="statusRight">
+      <span id="loadedPdfText" class="pill">PDF: (none)</span>
+      <span id="loadedMapText" class="pill">MAP: (none)</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-button active" data-tab="io">0. Import/Export</button>
+    <button class="tab-button" data-tab="design">1. Designer (PDF + Mapping)</button>
+    <button class="tab-button" data-tab="preview">2. Preview / Export</button>
+    <button class="tab-button" data-tab="ai">3. AI Payload</button>
+  </div>
+
+  <!-- TAB 0: IMPORT/EXPORT (MINIMAL) -->
+  <div id="tab-io" class="tab-content active">
+    <div class="panel">
+      <h2>Import / Export</h2>
+      <div class="io-file-row">
+        <div class="io-file-col">
+          <label for="pdfFileInputIO">Choose PDF</label>
+          <input id="pdfFileInputIO" type="file" accept="application/pdf" />
+        </div>
+        <div class="io-file-col">
+          <label for="mapFileInputIO">Choose MAP (.json)</label>
+          <input id="mapFileInputIO" type="file" accept="application/json" />
+        </div>
+      </div>
+
+      <div id="ioSketchWrap" class="thumbWrap"></div>
+
+      <div class="ioFieldList">
+        <h3 style="margin-bottom:0.4rem;">Fields (color-coded)</h3>
+        <div id="ioFieldList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 1: DESIGNER -->
+  <div id="tab-design" class="tab-content">
+    <div class="split">
+      <div id="pdfPanel" class="panel">
+        <div class="fs-exit-bar">
+          <div style="color:#e5e7eb; font-weight:700;">Mapping Fullscreen Mode</div>
+          <div style="display:flex; gap:0.35rem; align-items:center; flex-wrap:wrap;">
+            <button id="fsSaveBtn" class="secondary" style="margin-top:0;" title="Save to browser library (Cmd/Ctrl+S)">Save</button>
+            <button id="fsDownloadMapBtn" class="secondary" style="margin-top:0;" title="Download MAP (.json) to Downloads">Download MAP</button>
+            <button id="exitFullscreenModeBtn" class="secondary" style="margin-top:0;">Exit fullscreen</button>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:0.6rem; flex-wrap:wrap;">
+          <h2 style="margin:0; border-bottom:none; padding-bottom:0;">PDF & Region Mapping</h2>
+          <div style="display:flex; gap:0.35rem; align-items:center; flex-wrap:wrap;">
+            <button id="enterFullscreenModeBtn" class="secondary" style="margin-top:0;" title="Fullscreen mapping mode (hotkey: F)">Fullscreen mapping</button>
+          </div>
+        </div>
+        <div style="border-bottom:1px solid #e5e7eb; margin:0.4rem 0 0.6rem 0;"></div>
+
+        <small>
+          Load PDF (or use Tab 0). Then click+drag to outline an answer area. Press <b>F</b> for fullscreen mapping.
+        </small>
+
+        <div style="margin-top: 0.5rem; margin-bottom: 0.5rem;">
+          <label for="pdfFileInput">PDF file (optional; you can load on Tab 0)</label>
+          <input id="pdfFileInput" type="file" accept="application/pdf" />
+        </div>
+
+        <div id="pdfContainer">
+          <canvas id="pdfCanvas"></canvas>
+        </div>
+
+        <div class="page-controls">
+          <div>
+            <button id="prevPageBtn" disabled>Prev</button>
+            <button id="nextPageBtn" disabled>Next</button>
+          </div>
+          <div>
+            Page <span id="pageNum">–</span> / <span id="pageCount">–</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="configPanel" class="panel">
+        <h2>Form & Field Configuration</h2>
+
+        <label for="formNameInput">Form name</label>
+        <input id="formNameInput" type="text" placeholder="e.g., dl-180" />
+
+        <label>Expected PDF file name (stored in MAP)</label>
+        <input id="pdfNameDisplay" type="text" readonly placeholder="(set by MAP load or PDF load)" />
+
+        <!-- NEW: save + download right in the Designer tab -->
+        <div style="margin-top:0.6rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <button id="designerSaveBtn" class="secondary" title="Save to browser library (Cmd/Ctrl+S)">Save (library)</button>
+          <button id="designerDownloadMapBtn" class="secondary" title="Download MAP (.json) to Downloads">Download MAP</button>
+        </div>
+        <small style="color:#6b7280; display:block; margin-top:0.25rem;">
+          Tip: click the red banner to save. Shift-click = download MAP.
+        </small>
+
+        <hr style="margin-top: 0.7rem; margin-bottom: 0.7rem; border: none; border-top: 1px solid #e5e7eb;" />
+
+        <h3>Fields on current page</h3>
+        <small>Draw a region on the PDF to create a field. Click a region or item below to edit.</small>
+
+        <div id="fieldList" class="field-list"></div>
+
+        <div style="margin-top: 0.5rem;">
+          <button id="clearFieldsBtn" class="danger" style="margin-right: 0.25rem;">Clear fields on this page</button>
+        </div>
+
+        <hr style="margin-top: 0.7rem; margin-bottom: 0.7rem; border: none; border-top: 1px solid #e5e7eb;" />
+
+        <h3>Selected Field Details</h3>
+        <small>If nothing is selected, draw or click a region in the PDF.</small>
+
+        <label for="fieldIdInput">Field ID (stable key)</label>
+        <input id="fieldIdInput" type="text" placeholder="e.g., field_1_1" />
+
+        <label for="fieldLabelInput">Field label</label>
+        <input id="fieldLabelInput" type="text" placeholder="e.g., name" />
+
+        <label for="fieldRubricInput">Rubric / instructions for LLM</label>
+        <textarea id="fieldRubricInput" placeholder="e.g., find full name of patient or ask"></textarea>
+
+        <button id="updateFieldBtn" style="margin-top: 0.4rem;">Update field</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: PREVIEW / EXPORT -->
+  <div id="tab-preview" class="tab-content">
+    <div class="panel" id="formPreviewPanel">
+      <h2>Preview / Export</h2>
+      <small>
+        Type values into the fields, then download a filled PDF. Export MAP/CO-MAP here.
+        Downloads go to your browser’s <b>Downloads</b> folder.
+      </small>
+
+      <div style="margin-top: 0.7rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <button id="downloadFilledPdfBtn">Download filled PDF</button>
+        <button id="downloadMapBtn" class="secondary">Download MAP (timestamped)</button>
+        <button id="downloadCoMapBtn" class="secondary">Download CO-MAP (timestamped)</button>
+        <button id="saveToLibraryBtn" class="secondary">Save to browser library</button>
+      </div>
+
+      <div style="margin-top:0.6rem; display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+        <select id="storedMappingsSelect"></select>
+        <button id="loadStoredMappingBtn" class="secondary">Load</button>
+        <button id="useLoadedPdfNameBtn" class="secondary" disabled title="Sets expected PDF name = currently loaded PDF filename.">
+          Set expected PDF name = loaded
+        </button>
+      </div>
+
+      <div id="formPreviewContainer" style="margin-top: 0.9rem;"></div>
+
+      <h3>Current MAP JSON</h3>
+      <textarea id="mapJsonTextarea" readonly></textarea>
+    </div>
+  </div>
+
+  <!-- TAB 3: AI -->
+  <div id="tab-ai" class="tab-content">
+    <div class="split">
+      <div class="panel" style="flex:2; min-width: 320px;">
+        <h2>AI Payload</h2>
+        <small>
+          Build a prompt for an LLM, paste the JSON response back, then apply it to the form (Tab 2).
+        </small>
+
+        <hr style="margin-top: 0.7rem; margin-bottom: 0.7rem; border:none; border-top: 1px solid #e5e7eb;" />
+
+        <h3>Build prompt</h3>
+        <label for="aiSourceTextInput">Source text to extract from</label>
+        <textarea id="aiSourceTextInput" placeholder="Paste source text here..." rows="6"></textarea>
+
+        <button id="buildPromptBtn" style="margin-top:0.5rem;">Build AI prompt</button>
+
+        <label for="aiPromptTextarea" style="margin-top:0.6rem;">Prompt to send to the AI</label>
+        <textarea id="aiPromptTextarea" readonly rows="12" style="background:#0b1120;color:#e5e7eb;font-family:'SF Mono',Menlo,Consolas,monospace;"></textarea>
+
+        <div style="margin-top:0.5rem; display:flex; gap:0.5rem; flex-wrap: wrap; align-items:center;">
+          <button id="copyPromptBtn" class="secondary">Copy prompt</button>
+          <button id="openLLMBtn" class="secondary">Open selected LLM</button>
+          <small style="color:#6b7280;">(ChatGPT preselected; uses radio buttons.)</small>
+        </div>
+
+        <div style="margin-top:0.5rem; border:1px solid #e5e7eb; border-radius:8px; padding:0.55rem; background:#f9fafb;">
+          <div style="font-size:0.82rem; font-weight:700; color:#111827; margin-bottom:0.35rem;">Choose one:</div>
+          <div id="llmRadios" style="display:flex; gap:0.8rem; flex-wrap: wrap; font-size:0.82rem; color:#111827;"></div>
+        </div>
+
+        <hr style="margin-top: 0.7rem; margin-bottom: 0.7rem; border:none; border-top: 1px solid #e5e7eb;" />
+
+        <h3>Paste AI JSON response</h3>
+        <label for="aiJsonResponseInput">JSON from AI (keys should be field IDs)</label>
+        <textarea id="aiJsonResponseInput" placeholder='Example: { "field_1_1": "Adam Sohnen", "field_1_2": "133-41-2320" }' rows="8"></textarea>
+
+        <button id="applyJsonBtn" style="margin-top:0.5rem;">Apply JSON values to form (Tab 2)</button>
+      </div>
+
+      <div class="panel sticky" style="flex:1; min-width: 280px; max-width: 460px;">
+        <h2>Field Reference</h2>
+        <small>Hover an item to see its rubric + page. Colors cycle (red/yellow/orange/blue/green…).</small>
+
+        <label for="fieldRefSearch">Search fields</label>
+        <input id="fieldRefSearch" type="text" placeholder="type: name, id, page..." />
+
+        <div style="margin-top:0.5rem;">
+          <div class="field-ref-list" id="fieldRefList"></div>
+        </div>
+
+        <div style="margin-top:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <button id="copyFieldIdsBtn" class="secondary">Copy field IDs</button>
+          <button id="copyFieldRubricsBtn" class="secondary">Copy fields + rubrics</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js";
+
+    const STORAGE_KEY = "llmFormMapperMappings_v2";
+
+    // NEW: autosave key (prevents losing work)
+    const AUTOSAVE_KEY = "llmFormMapperAutosave_v2";
+
+    // Color cycle: red, yellow, orange, blue, green, then continue.
+    const COLOR_PALETTE = [
+      "#dc2626", // red
+      "#eab308", // yellow
+      "#f97316", // orange
+      "#2563eb", // blue
+      "#16a34a", // green
+      "#9333ea", // purple (extra)
+      "#06b6d4", // cyan (extra)
+      "#f43f5e"  // pink (extra)
+    ];
+    let fieldColorById = Object.create(null);
+
+    let pdfDoc = null;
+    let currentPageNumber = 1;
+    let scale = 1.2;
+    let isDrawing = false;
+    let startX = 0;
+    let startY = 0;
+    let tempBoxEl = null;
+    let selectedFieldId = null;
+    let originalPdfBytes = null;
+    let fieldValues = {};
+    let loadedPdfFileName = "";
+    let loadedMapFileName = "";
+    let isDirty = false;
+
+    let lastSavedLabel = "(not yet)";
+    let lastAutosaveLabel = "(not yet)";
+    let autosaveTimer = null;
+
+    const mapping = {
+      formName: "",
+      pdfFileName: "",
+      pages: []
+    };
+
+    // Tabs
+    const tabButtons = document.querySelectorAll(".tab-button");
+    const tabIO = document.getElementById("tab-io");
+    const tabDesign = document.getElementById("tab-design");
+    const tabPreview = document.getElementById("tab-preview");
+    const tabAI = document.getElementById("tab-ai");
+
+    // Status
+    const countsPill = document.getElementById("countsPill");
+    const savedPill = document.getElementById("savedPill");
+    const dirtyPill = document.getElementById("dirtyPill");
+    const loadedPdfText = document.getElementById("loadedPdfText");
+    const loadedMapText = document.getElementById("loadedMapText");
+
+    // Tab 0
+    const pdfFileInputIO = document.getElementById("pdfFileInputIO");
+    const mapFileInputIO = document.getElementById("mapFileInputIO");
+    const ioSketchWrap = document.getElementById("ioSketchWrap");
+    const ioFieldList = document.getElementById("ioFieldList");
+
+    // Designer
+    const pdfFileInput = document.getElementById("pdfFileInput");
+    const pdfNameDisplay = document.getElementById("pdfNameDisplay");
+    const pdfContainer = document.getElementById("pdfContainer");
+    const pdfCanvas = document.getElementById("pdfCanvas");
+    const ctx = pdfCanvas.getContext("2d");
+    const prevPageBtn = document.getElementById("prevPageBtn");
+    const nextPageBtn = document.getElementById("nextPageBtn");
+    const pageNumSpan = document.getElementById("pageNum");
+    const pageCountSpan = document.getElementById("pageCount");
+
+    const formNameInput = document.getElementById("formNameInput");
+    const fieldList = document.getElementById("fieldList");
+    const clearFieldsBtn = document.getElementById("clearFieldsBtn");
+
+    const fieldIdInput = document.getElementById("fieldIdInput");
+    const fieldLabelInput = document.getElementById("fieldLabelInput");
+    const fieldRubricInput = document.getElementById("fieldRubricInput");
+    const updateFieldBtn = document.getElementById("updateFieldBtn");
+
+    const enterFullscreenModeBtn = document.getElementById("enterFullscreenModeBtn");
+    const exitFullscreenModeBtn = document.getElementById("exitFullscreenModeBtn");
+
+    // NEW: Designer save/download buttons
+    const designerSaveBtn = document.getElementById("designerSaveBtn");
+    const designerDownloadMapBtn = document.getElementById("designerDownloadMapBtn");
+
+    // NEW: Fullscreen save/download buttons
+    const fsSaveBtn = document.getElementById("fsSaveBtn");
+    const fsDownloadMapBtn = document.getElementById("fsDownloadMapBtn");
+
+    // Preview / Export
+    const formPreviewContainer = document.getElementById("formPreviewContainer");
+    const mapJsonTextarea = document.getElementById("mapJsonTextarea");
+    const downloadFilledPdfBtn = document.getElementById("downloadFilledPdfBtn");
+    const downloadMapBtn = document.getElementById("downloadMapBtn");
+    const downloadCoMapBtn = document.getElementById("downloadCoMapBtn");
+    const saveToLibraryBtn = document.getElementById("saveToLibraryBtn");
+    const storedMappingsSelect = document.getElementById("storedMappingsSelect");
+    const loadStoredMappingBtn = document.getElementById("loadStoredMappingBtn");
+    const useLoadedPdfNameBtn = document.getElementById("useLoadedPdfNameBtn");
+
+    // AI
+    const aiSourceTextInput = document.getElementById("aiSourceTextInput");
+    const aiPromptTextarea = document.getElementById("aiPromptTextarea");
+    const aiJsonResponseInput = document.getElementById("aiJsonResponseInput");
+    const buildPromptBtn = document.getElementById("buildPromptBtn");
+    const applyJsonBtn = document.getElementById("applyJsonBtn");
+    const copyPromptBtn = document.getElementById("copyPromptBtn");
+    const openLLMBtn = document.getElementById("openLLMBtn");
+    const llmRadios = document.getElementById("llmRadios");
+
+    const fieldRefSearch = document.getElementById("fieldRefSearch");
+    const fieldRefList = document.getElementById("fieldRefList");
+    const copyFieldIdsBtn = document.getElementById("copyFieldIdsBtn");
+    const copyFieldRubricsBtn = document.getElementById("copyFieldRubricsBtn");
+
+    const toast = document.getElementById("toast");
+
+    function showToast(msg, ms = 2800) {
+      toast.textContent = msg;
+      toast.classList.add("show");
+      window.clearTimeout(showToast._t);
+      showToast._t = window.setTimeout(() => toast.classList.remove("show"), ms);
+    }
+
+    function escapeHtml(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function safeBaseName(s) {
+      return (s || "")
+        .trim()
+        .replace(/\s+/g, "_")
+        .replace(/[^a-zA-Z0-9_\-]+/g, "")
+        .slice(0, 80) || "form";
+    }
+
+    function timestampNow() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, "0");
+      const yyyy = d.getFullYear();
+      const mm = pad(d.getMonth() + 1);
+      const dd = pad(d.getDate());
+      const hh = pad(d.getHours());
+      const mi = pad(d.getMinutes());
+      const ss = pad(d.getSeconds());
+      return `${yyyy}${mm}${dd}_${hh}${mi}${ss}`;
+    }
+
+    function hexToRgba(hex, a) {
+      const h = String(hex || "").replace("#", "");
+      if (h.length !== 6) return `rgba(255,255,255,${a})`;
+      const r = parseInt(h.slice(0,2), 16);
+      const g = parseInt(h.slice(2,4), 16);
+      const b = parseInt(h.slice(4,6), 16);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+
+    function rebuildColorMap() {
+      fieldColorById = Object.create(null);
+      const pages = (mapping.pages || []).slice().sort((a,b) => a.pageNumber - b.pageNumber);
+      let i = 0;
+      for (const p of pages) {
+        for (const f of (p.fields || [])) {
+          fieldColorById[f.id] = COLOR_PALETTE[i % COLOR_PALETTE.length];
+          i++;
+        }
+      }
+    }
+
+    function colorForId(id) {
+      return fieldColorById[id] || COLOR_PALETTE[0];
+    }
+
+    function totalCounts() {
+      let pages = 0;
+      let fields = 0;
+      for (const p of mapping.pages || []) {
+        if (p.fields && p.fields.length) {
+          pages++;
+          fields += p.fields.length;
+        }
+      }
+      return { pages, fields };
+    }
+
+    // ===== NEW: AUTOSAVE =====
+    function doAutosaveNow() {
+      try {
+        const payload = {
+          savedAt: new Date().toISOString(),
+          mapping: JSON.parse(JSON.stringify(mapping)),
+          fieldValues: JSON.parse(JSON.stringify(fieldValues || {}))
+        };
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(payload));
+        lastAutosaveLabel = new Date().toLocaleTimeString();
+        updateStatusBar();
+      } catch (e) {
+        console.warn("Autosave failed:", e);
+      }
+    }
+
+    function scheduleAutosave() {
+      window.clearTimeout(autosaveTimer);
+      autosaveTimer = window.setTimeout(doAutosaveNow, 650);
+    }
+
+    function getAutosavePayload() {
+      try {
+        const txt = localStorage.getItem(AUTOSAVE_KEY);
+        if (!txt) return null;
+        const obj = JSON.parse(txt);
+        if (!obj || typeof obj !== "object") return null;
+        if (!obj.mapping || typeof obj.mapping !== "object") return null;
+        return obj;
+      } catch (e) {
+        console.warn("Could not read autosave:", e);
+        return null;
+      }
+    }
+
+    function maybeRestoreAutosaveOnInit() {
+      const p = getAutosavePayload();
+      if (!p) return;
+
+      const savedAtMs = Date.parse(p.savedAt || "");
+      if (Number.isFinite(savedAtMs)) {
+        const age = Date.now() - savedAtMs;
+        const maxAge = 1000 * 60 * 60 * 24 * 14; // 14 days
+        if (age > maxAge) return;
+      }
+
+      const mappingEmpty =
+        !(mapping.formName || "").trim() &&
+        !(mapping.pdfFileName || "").trim() &&
+        (!Array.isArray(mapping.pages) || mapping.pages.length === 0);
+
+      const nothingLoaded = !loadedPdfFileName && !loadedMapFileName;
+
+      const hasFields = Array.isArray(p.mapping.pages) && p.mapping.pages.some(pg => (pg.fields || []).length);
+
+      if (mappingEmpty && nothingLoaded && hasFields) {
+        const clone = JSON.parse(JSON.stringify(p.mapping));
+        mapping.formName = clone.formName || "";
+        mapping.pdfFileName = clone.pdfFileName || "";
+        mapping.pages = Array.isArray(clone.pages) ? clone.pages : [];
+
+        fieldValues = (p.fieldValues && typeof p.fieldValues === "object" && !Array.isArray(p.fieldValues))
+          ? JSON.parse(JSON.stringify(p.fieldValues))
+          : {};
+
+        formNameInput.value = mapping.formName;
+        pdfNameDisplay.value = mapping.pdfFileName;
+
+        selectedFieldId = null;
+
+        // treat as dirty until you "Save/Download" a version
+        setDirty(true);
+
+        showToast("Restored autosave (last mapping).");
+      }
+    }
+    // ===== END AUTOSAVE =====
+
+    function setDirty(flag) {
+      isDirty = !!flag;
+      dirtyPill.style.display = isDirty ? "inline-flex" : "none";
+      if (isDirty) scheduleAutosave();
+      updateStatusBar();
+    }
+
+    function markSaved(label) {
+      lastSavedLabel = label || new Date().toLocaleString();
+      doAutosaveNow();      // ensure a final snapshot exists
+      setDirty(false);      // turns off the red glow
+    }
+
+    function updateStatusBar() {
+      const c = totalCounts();
+      countsPill.textContent = `Fields: ${c.fields} • Pages: ${c.pages}`;
+      savedPill.textContent = `Saved: ${lastSavedLabel} • Autosaved: ${lastAutosaveLabel}`;
+      loadedPdfText.textContent = `PDF: ${loadedPdfFileName || "(none)"}`;
+      loadedMapText.textContent = `MAP: ${loadedMapFileName || "(none)"}`;
+      useLoadedPdfNameBtn.disabled = !(loadedPdfFileName && (mapping.pdfFileName || "").trim() !== loadedPdfFileName.trim());
+      if (loadedPdfFileName && !mapping.pdfFileName) useLoadedPdfNameBtn.disabled = false;
+    }
+
+    function updateMapJsonTextarea() {
+      mapJsonTextarea.value = JSON.stringify(mapping, null, 2);
+    }
+
+    function getAllFieldsFlattenedInOrder() {
+      const out = [];
+      const pages = (mapping.pages || []).slice().sort((a,b) => a.pageNumber - b.pageNumber);
+      for (const p of pages) {
+        for (const f of (p.fields || [])) {
+          out.push({
+            pageNumber: p.pageNumber,
+            id: f.id,
+            label: f.label || "",
+            rubric: f.rubric || "",
+            x: f.x, y: f.y, width: f.width, height: f.height
+          });
+        }
+      }
+      return out;
+    }
+
+    function updateAllDerivedViews() {
+      rebuildColorMap();
+      updateMapJsonTextarea();
+      updateStatusBar();
+      renderIOFieldList();
+      renderIOSketchPDF();
+      renderFieldReferenceList();
+    }
+
+    function switchTab(tab) {
+      tabButtons.forEach(b => b.classList.toggle("active", b.getAttribute("data-tab") === tab));
+      tabIO.classList.toggle("active", tab === "io");
+      tabDesign.classList.toggle("active", tab === "design");
+      tabPreview.classList.toggle("active", tab === "preview");
+      tabAI.classList.toggle("active", tab === "ai");
+
+      if (tab === "preview") {
+        renderFormPreview();
+        updateMapJsonTextarea();
+        refreshStoredMappingsSelect();
+      }
+      if (tab === "ai") {
+        renderFieldReferenceList();
+        updateMapJsonTextarea();
+      }
+      if (tab === "io") {
+        renderIOSketchPDF();
+        renderIOFieldList();
+      }
+    }
+    tabButtons.forEach(btn => btn.addEventListener("click", () => switchTab(btn.getAttribute("data-tab"))));
+
+    // Local library
+    function loadStoredMappings() {
+      try {
+        const txt = localStorage.getItem(STORAGE_KEY);
+        if (!txt) return [];
+        const arr = JSON.parse(txt);
+        return Array.isArray(arr) ? arr : [];
+      } catch (e) {
+        console.warn("Could not load stored mappings", e);
+        return [];
+      }
+    }
+
+    function saveStoredMappings(list) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+      catch (e) { console.warn("Could not save mappings", e); }
+    }
+
+    function refreshStoredMappingsSelect() {
+      const list = loadStoredMappings();
+      storedMappingsSelect.innerHTML = "";
+      if (!list.length) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "(No saved forms yet)";
+        storedMappingsSelect.appendChild(opt);
+        storedMappingsSelect.disabled = true;
+        loadStoredMappingBtn.disabled = true;
+        return;
+      }
+      storedMappingsSelect.disabled = false;
+      loadStoredMappingBtn.disabled = false;
+      for (const entry of list) {
+        const opt = document.createElement("option");
+        opt.value = entry.id;
+        opt.textContent = `${entry.formName || "(unnamed)"}${entry.pdfFileName ? " – " + entry.pdfFileName : ""}`;
+        storedMappingsSelect.appendChild(opt);
+      }
+    }
+
+    function saveCurrentMappingToLibrary() {
+      const clone = JSON.parse(JSON.stringify(mapping));
+      const list = loadStoredMappings();
+      const idBase = mapping.formName || mapping.pdfFileName || "unnamed_form";
+      const safeBase = safeBaseName(idBase);
+      const id = "formaker_" + safeBase + "_" + Date.now();
+
+      list.push({
+        id,
+        formName: clone.formName || "",
+        pdfFileName: clone.pdfFileName || "",
+        createdAt: new Date().toISOString(),
+        mapping: clone
+      });
+      saveStoredMappings(list);
+      refreshStoredMappingsSelect();
+      markSaved("Saved to browser library @ " + new Date().toLocaleTimeString());
+      showToast("Saved to browser library. (Local to this browser/device)");
+    }
+
+    function loadMappingById(id) {
+      const list = loadStoredMappings();
+      const entry = list.find(e => e.id === id);
+      if (!entry) { alert("Mapping not found."); return; }
+
+      const clone = JSON.parse(JSON.stringify(entry.mapping));
+      mapping.formName = clone.formName || "";
+      mapping.pdfFileName = clone.pdfFileName || "";
+      mapping.pages = Array.isArray(clone.pages) ? clone.pages : [];
+
+      formNameInput.value = mapping.formName;
+      pdfNameDisplay.value = mapping.pdfFileName;
+
+      selectedFieldId = null;
+      fieldValues = {};
+      loadedMapFileName = "(browser library)";
+
+      renderFieldBoxes();
+      renderFieldList();
+      updateFieldEditor();
+      updateAllDerivedViews();
+      setDirty(false);
+      doAutosaveNow();
+      showToast("Loaded mapping from browser library.");
+    }
+
+    saveToLibraryBtn.addEventListener("click", saveCurrentMappingToLibrary);
+    if (designerSaveBtn) designerSaveBtn.addEventListener("click", saveCurrentMappingToLibrary);
+    if (fsSaveBtn) fsSaveBtn.addEventListener("click", saveCurrentMappingToLibrary);
+
+    loadStoredMappingBtn.addEventListener("click", () => {
+      const id = storedMappingsSelect.value;
+      if (!id) return;
+      loadMappingById(id);
+    });
+
+    useLoadedPdfNameBtn.addEventListener("click", () => {
+      if (!loadedPdfFileName) return;
+      mapping.pdfFileName = loadedPdfFileName;
+      pdfNameDisplay.value = mapping.pdfFileName;
+      setDirty(true);
+      updateAllDerivedViews();
+      showToast("Expected PDF name updated to match loaded PDF.");
+    });
+
+    // Download helpers
+    function downloadBlob(filename, objOrText, mime = "application/json") {
+      const data = typeof objOrText === "string" ? objOrText : JSON.stringify(objOrText, null, 2);
+      const blob = new Blob([data], { type: mime });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast(`Downloaded "${filename}". Check your Downloads folder.`);
+    }
+
+    function downloadMapTimestamped() {
+      const base = safeBaseName(mapping.formName || (mapping.pdfFileName ? mapping.pdfFileName.replace(/\.pdf$/i, "") : ""));
+      const ts = timestampNow();
+      downloadBlob(`${base}__${ts}.map.json`, mapping);
+      markSaved("Downloaded MAP @ " + new Date().toLocaleTimeString());
+    }
+
+    function downloadCoMapTimestamped() {
+      const base = safeBaseName(mapping.formName || (mapping.pdfFileName ? mapping.pdfFileName.replace(/\.pdf$/i, "") : ""));
+      const ts = timestampNow();
+      const flat = getAllFieldsFlattenedInOrder().map(f => ({
+        pageNumber: f.pageNumber,
+        id: f.id,
+        label: f.label,
+        rubric: f.rubric,
+        color: colorForId(f.id),
+        x: f.x, y: f.y, width: f.width, height: f.height
+      }));
+      const co = {
+        exportedAt: new Date().toISOString(),
+        formName: mapping.formName || "",
+        expectedPdfFileName: mapping.pdfFileName || "",
+        loadedPdfFileName: loadedPdfFileName || "",
+        fieldCount: flat.length,
+        pagesCount: (mapping.pages || []).length,
+        fields: flat
+      };
+      downloadBlob(`${base}__${ts}.comap.json`, co);
+      markSaved("Downloaded CO-MAP @ " + new Date().toLocaleTimeString());
+    }
+
+    downloadMapBtn.addEventListener("click", downloadMapTimestamped);
+    downloadCoMapBtn.addEventListener("click", downloadCoMapTimestamped);
+    if (designerDownloadMapBtn) designerDownloadMapBtn.addEventListener("click", downloadMapTimestamped);
+    if (fsDownloadMapBtn) fsDownloadMapBtn.addEventListener("click", downloadMapTimestamped);
+
+    // NEW: red glow pill is a save control
+    function quickSaveFromDirtyPill(e) {
+      if (e && e.shiftKey) downloadMapTimestamped();
+      else saveCurrentMappingToLibrary();
+    }
+    dirtyPill.addEventListener("click", quickSaveFromDirtyPill);
+    dirtyPill.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        quickSaveFromDirtyPill(e);
+      }
+    });
+
+    // NEW: Cmd/Ctrl+S saves to library anywhere
+    document.addEventListener("keydown", (e) => {
+      const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+      const mod = isMac ? e.metaKey : e.ctrlKey;
+      if (mod && (e.key === "s" || e.key === "S")) {
+        e.preventDefault();
+        saveCurrentMappingToLibrary();
+      }
+    });
+
+    // File loading
+    function handleMapFile(file) {
+      if (!file) return;
+      loadedMapFileName = file.name;
+
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        try {
+          const json = JSON.parse(ev.target.result);
+          if (!json || typeof json !== "object") throw new Error("Invalid JSON.");
+
+          mapping.formName = json.formName || "";
+          mapping.pdfFileName = json.pdfFileName || "";
+          mapping.pages = Array.isArray(json.pages) ? json.pages : [];
+
+          formNameInput.value = mapping.formName;
+          pdfNameDisplay.value = mapping.pdfFileName;
+
+          selectedFieldId = null;
+          fieldValues = {};
+
+          renderFieldBoxes();
+          renderFieldList();
+          updateFieldEditor();
+          updateAllDerivedViews();
+          setDirty(false);
+          doAutosaveNow();
+          showToast("MAP loaded.");
+        } catch (err) {
+          console.error("Error parsing map JSON:", err);
+          alert("Failed to load MAP JSON. See console for details.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function handlePdfFile(file) {
+      if (!file) return;
+      loadedPdfFileName = file.name;
+
+      if (!mapping.formName) {
+        const base = file.name.replace(/\.pdf$/i, "");
+        mapping.formName = base;
+        formNameInput.value = mapping.formName;
+      }
+
+      if (!mapping.pdfFileName) {
+        mapping.pdfFileName = file.name;
+        pdfNameDisplay.value = mapping.pdfFileName;
+        setDirty(true);
+      } else {
+        pdfNameDisplay.value = mapping.pdfFileName;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        originalPdfBytes = e.target.result;
+        const typedarray = new Uint8Array(e.target.result);
+        const loadingTask = pdfjsLib.getDocument({ data: typedarray });
+
+        loadingTask.promise.then(pdf => {
+          pdfDoc = pdf;
+          currentPageNumber = 1;
+          pageCountSpan.textContent = pdf.numPages;
+
+          prevPageBtn.disabled = currentPageNumber <= 1;
+          nextPageBtn.disabled = currentPageNumber >= pdf.numPages;
+
+          renderPage(currentPageNumber);
+          renderFieldList();
+          updateFieldEditor();
+          updateAllDerivedViews();
+          showToast("PDF loaded.");
+        }).catch(err => {
+          console.error("Error loading PDF:", err);
+          alert("Failed to load PDF. See console for details.");
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    pdfFileInputIO.addEventListener("change", (e) => handlePdfFile(e.target.files[0]));
+    pdfFileInput.addEventListener("change", (e) => handlePdfFile(e.target.files[0]));
+    mapFileInputIO.addEventListener("change", (e) => handleMapFile(e.target.files[0]));
+
+    // Designer rendering
+    function isMappingFullscreenMode() { return document.body.classList.contains("mapping-fullscreen"); }
+
+    async function computeFitScale(page) {
+      const viewport1 = page.getViewport({ scale: 1 });
+      const availW = Math.max(320, window.innerWidth - 40);
+      const availH = Math.max(240, window.innerHeight - 140);
+      const wScale = availW / viewport1.width;
+      const hScale = availH / viewport1.height;
+      let fit = Math.min(wScale, hScale);
+      fit = Math.max(0.5, Math.min(fit, 3.0));
+      return fit;
+    }
+
+    function renderPage(num) {
+      if (!pdfDoc) return;
+      pdfDoc.getPage(num).then(async page => {
+        if (isMappingFullscreenMode()) {
+          try { scale = await computeFitScale(page); } catch (_) {}
+        }
+
+        const viewport = page.getViewport({ scale });
+        pdfCanvas.height = viewport.height;
+        pdfCanvas.width = viewport.width;
+
+        const renderContext = { canvasContext: ctx, viewport };
+        const renderTask = page.render(renderContext);
+
+        renderTask.promise.then(() => {
+          pageNumSpan.textContent = num;
+          prevPageBtn.disabled = num <= 1;
+          nextPageBtn.disabled = num >= pdfDoc.numPages;
+          renderFieldBoxes();
+        });
+      });
+    }
+
+    prevPageBtn.addEventListener("click", () => {
+      if (!pdfDoc || currentPageNumber <= 1) return;
+      currentPageNumber--;
+      selectedFieldId = null;
+      renderPage(currentPageNumber);
+      renderFieldList();
+      updateFieldEditor();
+    });
+
+    nextPageBtn.addEventListener("click", () => {
+      if (!pdfDoc || currentPageNumber >= pdfDoc.numPages) return;
+      currentPageNumber++;
+      selectedFieldId = null;
+      renderPage(currentPageNumber);
+      renderFieldList();
+      updateFieldEditor();
+    });
+
+    function enterMappingFullscreenMode() {
+      document.body.classList.add("mapping-fullscreen");
+      if (pdfDoc) renderPage(currentPageNumber);
+    }
+    function exitMappingFullscreenMode() {
+      document.body.classList.remove("mapping-fullscreen");
+      scale = 1.2;
+      if (pdfDoc) renderPage(currentPageNumber);
+    }
+    enterFullscreenModeBtn.addEventListener("click", enterMappingFullscreenMode);
+    exitFullscreenModeBtn.addEventListener("click", exitMappingFullscreenMode);
+
+    document.addEventListener("keydown", (e) => {
+      const active = document.querySelector(".tab-button.active");
+      const tab = active ? active.getAttribute("data-tab") : "";
+      const tag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : "";
+      const typing = (tag === "input" || tag === "textarea" || tag === "select");
+      if (typing) return;
+
+      if ((e.key === "f" || e.key === "F") && tab === "design") {
+        e.preventDefault();
+        isMappingFullscreenMode() ? exitMappingFullscreenMode() : enterMappingFullscreenMode();
+      }
+      if (e.key === "Escape" && isMappingFullscreenMode()) exitMappingFullscreenMode();
+    });
+
+    function getOrCreatePage(pageNumber) {
+      let page = mapping.pages.find(p => p.pageNumber === pageNumber);
+      if (!page) {
+        page = { pageNumber, fields: [] };
+        mapping.pages.push(page);
+        mapping.pages.sort((a, b) => a.pageNumber - b.pageNumber);
+      }
+      return page;
+    }
+    function getCurrentPageObj() { return getOrCreatePage(currentPageNumber); }
+
+    function getFieldById(fieldId) {
+      for (const page of mapping.pages) {
+        const field = (page.fields || []).find(f => f.id === fieldId);
+        if (field) return { page, field };
+      }
+      return null;
+    }
+
+    pdfCanvas.addEventListener("mousedown", (e) => {
+      if (!pdfDoc) return;
+
+      const rect = pdfCanvas.getBoundingClientRect();
+      startX = e.clientX - rect.left;
+      startY = e.clientY - rect.top;
+      isDrawing = true;
+
+      tempBoxEl = document.createElement("div");
+      tempBoxEl.className = "field-box";
+      tempBoxEl.style.left = startX + "px";
+      tempBoxEl.style.top = startY + "px";
+      tempBoxEl.style.width = "0px";
+      tempBoxEl.style.height = "0px";
+
+      const labelEl = document.createElement("div");
+      labelEl.className = "field-box-label";
+      labelEl.textContent = "(new field)";
+      tempBoxEl.appendChild(labelEl);
+
+      pdfContainer.appendChild(tempBoxEl);
+    });
+
+    pdfCanvas.addEventListener("mousemove", (e) => {
+      if (!isDrawing || !tempBoxEl) return;
+      const rect = pdfCanvas.getBoundingClientRect();
+      const currentX = e.clientX - rect.left;
+      const currentY = e.clientY - rect.top;
+      const width = currentX - startX;
+      const height = currentY - startY;
+
+      tempBoxEl.style.left = (width < 0 ? currentX : startX) + "px";
+      tempBoxEl.style.top = (height < 0 ? currentY : startY) + "px";
+      tempBoxEl.style.width = Math.abs(width) + "px";
+      tempBoxEl.style.height = Math.abs(height) + "px";
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (!isDrawing) return;
+      isDrawing = false;
+      if (!tempBoxEl) return;
+
+      const leftPx = parseFloat(tempBoxEl.style.left);
+      const topPx = parseFloat(tempBoxEl.style.top);
+      const widthPx = parseFloat(tempBoxEl.style.width);
+      const heightPx = parseFloat(tempBoxEl.style.height);
+
+      if (widthPx < 5 || heightPx < 5) {
+        pdfContainer.removeChild(tempBoxEl);
+        tempBoxEl = null;
+        return;
+      }
+
+      const normX = leftPx / pdfCanvas.width;
+      const normY = topPx / pdfCanvas.height;
+      const normW = widthPx / pdfCanvas.width;
+      const normH = heightPx / pdfCanvas.height;
+
+      const pageObj = getCurrentPageObj();
+      const newId = `field_${currentPageNumber}_${pageObj.fields.length + 1}`;
+
+      pageObj.fields.push({
+        id: newId,
+        label: "",
+        rubric: "",
+        x: normX,
+        y: normY,
+        width: normW,
+        height: normH
+      });
+      selectedFieldId = newId;
+
+      pdfContainer.removeChild(tempBoxEl);
+      tempBoxEl = null;
+
+      setDirty(true);
+      renderFieldBoxes();
+      renderFieldList();
+      updateFieldEditor();
+      updateAllDerivedViews();
+    });
+
+    function renderFieldBoxes() {
+      const oldBoxes = pdfContainer.querySelectorAll(".field-box");
+      oldBoxes.forEach(b => b.remove());
+
+      const pageObj = mapping.pages.find(p => p.pageNumber === currentPageNumber);
+      if (!pageObj || !pageObj.fields || !pageObj.fields.length) return;
+
+      for (const field of pageObj.fields) {
+        const box = document.createElement("div");
+        box.className = "field-box";
+        if (field.id === selectedFieldId) box.classList.add("selected");
+
+        // Use cycling colors for outline in Designer too
+        const col = colorForId(field.id);
+        box.style.borderColor = col;
+        box.style.background = hexToRgba(col, 0.18);
+
+        const leftPx = field.x * pdfCanvas.width;
+        const topPx = field.y * pdfCanvas.height;
+        const widthPx = field.width * pdfCanvas.width;
+        const heightPx = field.height * pdfCanvas.height;
+
+        box.style.left = leftPx + "px";
+        box.style.top = topPx + "px";
+        box.style.width = widthPx + "px";
+        box.style.height = heightPx + "px";
+
+        const labelEl = document.createElement("div");
+        labelEl.className = "field-box-label";
+        labelEl.textContent = field.label || field.id;
+        box.appendChild(labelEl);
+
+        box.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          selectedFieldId = field.id;
+          renderFieldBoxes();
+          renderFieldList();
+          updateFieldEditor();
+        });
+
+        pdfContainer.appendChild(box);
+      }
+    }
+
+    function renderFieldList() {
+      fieldList.innerHTML = "";
+      const pageObj = mapping.pages.find(p => p.pageNumber === currentPageNumber);
+      if (!pageObj || !pageObj.fields.length) {
+        const msg = document.createElement("div");
+        msg.style.fontSize = "0.8rem";
+        msg.style.color = "#6b7280";
+        msg.textContent = "No fields on this page yet. Draw a region on the PDF to create one.";
+        fieldList.appendChild(msg);
+        return;
+      }
+
+      for (const field of pageObj.fields) {
+        const item = document.createElement("div");
+        item.className = "field-item";
+        if (field.id === selectedFieldId) item.classList.add("selected");
+
+        const header = document.createElement("div");
+        header.className = "field-item-header";
+
+        const left = document.createElement("div");
+        left.style.display = "inline-flex";
+        left.style.alignItems = "center";
+        left.style.gap = "0.45rem";
+
+        const sw = document.createElement("span");
+        sw.className = "field-swatch";
+        sw.style.background = colorForId(field.id);
+        left.appendChild(sw);
+
+        const labelDiv = document.createElement("div");
+        labelDiv.className = "field-item-label";
+        labelDiv.textContent = field.label || field.id;
+        left.appendChild(labelDiv);
+
+        const metaDiv = document.createElement("div");
+        metaDiv.className = "field-item-meta";
+        metaDiv.textContent = `ID: ${field.id}`;
+
+        header.appendChild(left);
+        header.appendChild(metaDiv);
+
+        const rubricDiv = document.createElement("div");
+        rubricDiv.style.fontSize = "0.72rem";
+        rubricDiv.style.color = "#4b5563";
+        rubricDiv.textContent = field.rubric ? `Rubric: ${field.rubric}` : "(No rubric yet)";
+
+        const actions = document.createElement("div");
+        actions.className = "field-item-actions";
+
+        const selectBtn = document.createElement("button");
+        selectBtn.className = "secondary";
+        selectBtn.textContent = "Select";
+        selectBtn.addEventListener("click", () => {
+          selectedFieldId = field.id;
+          renderFieldBoxes();
+          renderFieldList();
+          updateFieldEditor();
+        });
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "danger";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.addEventListener("click", () => {
+          if (!confirm("Delete this field?")) return;
+          const idx = pageObj.fields.findIndex(f => f.id === field.id);
+          if (idx !== -1) pageObj.fields.splice(idx, 1);
+          if (selectedFieldId === field.id) selectedFieldId = null;
+          delete fieldValues[field.id];
+
+          setDirty(true);
+          renderFieldBoxes();
+          renderFieldList();
+          updateFieldEditor();
+          updateAllDerivedViews();
+        });
+
+        actions.appendChild(selectBtn);
+        actions.appendChild(deleteBtn);
+
+        item.appendChild(header);
+        item.appendChild(rubricDiv);
+        item.appendChild(actions);
+        fieldList.appendChild(item);
+      }
+    }
+
+    clearFieldsBtn.addEventListener("click", () => {
+      const pageObj = mapping.pages.find(p => p.pageNumber === currentPageNumber);
+      if (!pageObj || !pageObj.fields.length) return;
+      if (!confirm("Clear all fields on this page?")) return;
+
+      for (const f of pageObj.fields) delete fieldValues[f.id];
+      pageObj.fields = [];
+      selectedFieldId = null;
+
+      setDirty(true);
+      renderFieldBoxes();
+      renderFieldList();
+      updateFieldEditor();
+      updateAllDerivedViews();
+    });
+
+    function updateFieldEditor() {
+      if (!selectedFieldId) {
+        fieldIdInput.value = "";
+        fieldLabelInput.value = "";
+        fieldRubricInput.value = "";
+        updateFieldBtn.disabled = true;
+        return;
+      }
+      const res = getFieldById(selectedFieldId);
+      if (!res) {
+        fieldIdInput.value = "";
+        fieldLabelInput.value = "";
+        fieldRubricInput.value = "";
+        updateFieldBtn.disabled = true;
+        return;
+      }
+      const { field } = res;
+      fieldIdInput.value = field.id;
+      fieldLabelInput.value = field.label || "";
+      fieldRubricInput.value = field.rubric || "";
+      updateFieldBtn.disabled = false;
+    }
+
+    updateFieldBtn.addEventListener("click", () => {
+      if (!selectedFieldId) return;
+      const res = getFieldById(selectedFieldId);
+      if (!res) return;
+
+      const { field } = res;
+      const newId = fieldIdInput.value.trim() || field.id;
+      const newLabel = fieldLabelInput.value.trim();
+      const newRubric = fieldRubricInput.value.trim();
+
+      if (newId !== field.id) {
+        const exists = getFieldById(newId);
+        if (exists) { alert("That field ID is already in use. Choose another."); return; }
+        if (fieldValues[field.id] !== undefined) {
+          fieldValues[newId] = fieldValues[field.id];
+          delete fieldValues[field.id];
+        }
+        field.id = newId;
+        selectedFieldId = newId;
+      }
+
+      field.label = newLabel;
+      field.rubric = newRubric;
+
+      setDirty(true);
+      renderFieldBoxes();
+      renderFieldList();
+      updateAllDerivedViews();
+    });
+
+    formNameInput.addEventListener("input", () => {
+      mapping.formName = formNameInput.value.trim();
+      setDirty(true);
+      updateAllDerivedViews();
+    });
+
+    // TAB 0: Color-coded fields at bottom (simple list)
+    function renderIOFieldList() {
+      ioFieldList.innerHTML = "";
+      const all = getAllFieldsFlattenedInOrder();
+      if (!all.length) {
+        const msg = document.createElement("div");
+        msg.style.color = "#6b7280";
+        msg.style.fontSize = "0.85rem";
+        msg.textContent = "No fields yet. Create fields in Designer or load a MAP.";
+        ioFieldList.appendChild(msg);
+        return;
+      }
+
+      for (const f of all) {
+        const row = document.createElement("div");
+        row.className = "ioFieldRow";
+
+        const sw = document.createElement("span");
+        sw.className = "field-swatch";
+        sw.style.background = colorForId(f.id);
+
+        const left = document.createElement("div");
+        left.className = "ioFieldLeft";
+
+        const top = document.createElement("div");
+        top.style.display = "flex";
+        top.style.alignItems = "baseline";
+        top.style.gap = "0.6rem";
+        top.style.flexWrap = "wrap";
+
+        const fid = document.createElement("span");
+        fid.className = "ioFieldId";
+        fid.textContent = f.id;
+
+        const flabel = document.createElement("span");
+        flabel.className = "ioFieldLabel";
+        flabel.textContent = f.label || "(no label)";
+
+        top.appendChild(fid);
+        top.appendChild(flabel);
+
+        const meta = document.createElement("div");
+        meta.className = "ioFieldMeta";
+        meta.textContent = `Page ${f.pageNumber}`;
+
+        left.appendChild(top);
+        left.appendChild(meta);
+
+        row.appendChild(sw);
+        row.appendChild(left);
+
+        row.title = [`Page: ${f.pageNumber}`, `ID: ${f.id}`, f.label ? `Label: ${f.label}` : "", f.rubric ? `Rubric: ${f.rubric}` : "Rubric: (none)"].filter(Boolean).join("\n");
+        ioFieldList.appendChild(row);
+      }
+    }
+
+    // TAB 0: PDF should appear in sketch (real PDF thumbnails + overlay)
+    async function renderIOSketchPDF() {
+      ioSketchWrap.innerHTML = "";
+
+      if (!pdfDoc) {
+        const msg = document.createElement("div");
+        msg.style.color = "#6b7280";
+        msg.style.fontSize = "0.88rem";
+        msg.textContent = "Choose a PDF to see the sketch preview here.";
+        ioSketchWrap.appendChild(msg);
+        return;
+      }
+
+      // Show pages that have fields; if none, show page 1.
+      const pagesWithFields = (mapping.pages || [])
+        .filter(p => (p.fields || []).length)
+        .map(p => p.pageNumber)
+        .sort((a,b) => a - b);
+
+      const pagesToShow = pagesWithFields.length ? pagesWithFields : [1];
+
+      for (const pageNumber of pagesToShow) {
+        const panel = document.createElement("div");
+        panel.className = "thumbPanel";
+
+        const head = document.createElement("div");
+        head.className = "thumbHeader";
+        const left = document.createElement("div");
+        left.textContent = `Page ${pageNumber}`;
+        const right = document.createElement("div");
+        right.style.color = "#6b7280";
+        const count = (mapping.pages.find(p => p.pageNumber === pageNumber)?.fields || []).length;
+        right.textContent = `${count} field${count === 1 ? "" : "s"}`;
+        head.appendChild(left);
+        head.appendChild(right);
+
+        const stage = document.createElement("div");
+        stage.className = "thumbStage";
+
+        const canvas = document.createElement("canvas");
+        canvas.className = "thumbCanvas";
+
+        const overlay = document.createElement("div");
+        overlay.className = "thumbOverlay";
+
+        stage.appendChild(canvas);
+        stage.appendChild(overlay);
+
+        panel.appendChild(head);
+        panel.appendChild(stage);
+        ioSketchWrap.appendChild(panel);
+
+        // Render PDF page into canvas at a comfortable thumbnail scale.
+        try {
+          const page = await pdfDoc.getPage(pageNumber);
+          const baseViewport = page.getViewport({ scale: 1 });
+
+          // Target ~900px width inside canvas so it still looks crisp when scaled down.
+          const targetPx = 900;
+          const thumbScale = Math.max(0.2, Math.min(2.0, targetPx / baseViewport.width));
+          const viewport = page.getViewport({ scale: thumbScale });
+
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          const cctx = canvas.getContext("2d");
+          await page.render({ canvasContext: cctx, viewport }).promise;
+
+          // Overlay boxes in percentages (so they match canvas sizing)
+          const pageObj = mapping.pages.find(p => p.pageNumber === pageNumber);
+          const fields = pageObj?.fields || [];
+
+          overlay.innerHTML = "";
+          for (const f of fields) {
+            const col = colorForId(f.id);
+
+            const box = document.createElement("div");
+            box.className = "thumbBox";
+            box.style.left = (f.x * 100) + "%";
+            box.style.top = (f.y * 100) + "%";
+            box.style.width = (f.width * 100) + "%";
+            box.style.height = (f.height * 100) + "%";
+            box.style.borderColor = col;
+            box.style.background = hexToRgba(col, 0.14);
+
+            const lab = document.createElement("div");
+            lab.className = "thumbBoxLabel";
+            lab.textContent = (f.label || f.id);
+            box.appendChild(lab);
+
+            box.title = `${f.id}${f.label ? " • " + f.label : ""}${f.rubric ? "\n" + f.rubric : ""}`;
+            overlay.appendChild(box);
+          }
+        } catch (err) {
+          console.warn("IO sketch render error:", err);
+          const warn = document.createElement("div");
+          warn.style.color = "#e5e7eb";
+          warn.style.fontSize = "0.85rem";
+          warn.textContent = "Could not render this PDF page preview.";
+          stage.appendChild(warn);
+        }
+      }
+    }
+
+    // Preview form
+    function renderFormPreview() {
+      formPreviewContainer.innerHTML = "";
+      const title = document.createElement("h3");
+      title.textContent = mapping.formName || "(Unnamed form)";
+      formPreviewContainer.appendChild(title);
+
+      const pdfInfo = document.createElement("div");
+      pdfInfo.style.fontSize = "0.8rem";
+      pdfInfo.style.color = "#6b7280";
+      pdfInfo.textContent = loadedPdfFileName ? `Loaded PDF: ${loadedPdfFileName}` : "PDF not loaded yet.";
+      formPreviewContainer.appendChild(pdfInfo);
+
+      if (!mapping.pages.length) {
+        const msg = document.createElement("div");
+        msg.style.marginTop = "0.6rem";
+        msg.style.fontSize = "0.85rem";
+        msg.textContent = "No fields defined yet. Create some in Designer or load a MAP.";
+        formPreviewContainer.appendChild(msg);
+        return;
+      }
+
+      for (const page of (mapping.pages || []).slice().sort((a,b) => a.pageNumber - b.pageNumber)) {
+        if (!page.fields || !page.fields.length) continue;
+
+        const pageHeader = document.createElement("h4");
+        pageHeader.textContent = `Page ${page.pageNumber}`;
+        formPreviewContainer.appendChild(pageHeader);
+
+        for (const field of page.fields) {
+          const wrap = document.createElement("div");
+          wrap.className = "form-field-preview";
+
+          const labelEl = document.createElement("label");
+          labelEl.textContent = field.label || field.id;
+
+          const rubricEl = document.createElement("div");
+          rubricEl.innerHTML = `<small>${escapeHtml(field.rubric || "(no rubric given)")}</small>`;
+
+          const inputEl = document.createElement("textarea");
+          inputEl.placeholder = "Value for this field...";
+          inputEl.rows = 2;
+          inputEl.style.fontSize = "0.8rem";
+          inputEl.dataset.fieldId = field.id;
+          inputEl.value = fieldValues[field.id] || "";
+          inputEl.addEventListener("input", () => { fieldValues[field.id] = inputEl.value; });
+
+          wrap.appendChild(labelEl);
+          wrap.appendChild(rubricEl);
+          wrap.appendChild(inputEl);
+          formPreviewContainer.appendChild(wrap);
+        }
+      }
+    }
+
+    async function generateFilledPdf() {
+      if (!originalPdfBytes) { alert("Please load a PDF first (Tab 0 or Designer)."); return; }
+      if (!mapping.pages.length) { alert("No fields defined in the mapping."); return; }
+      if (typeof PDFLib === "undefined") { alert("pdf-lib is not loaded."); return; }
+
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const pdfDocLocal = await PDFDocument.load(originalPdfBytes);
+      const pages = pdfDocLocal.getPages();
+      const font = await pdfDocLocal.embedFont(StandardFonts.Helvetica);
+
+      for (const pageMapping of mapping.pages) {
+        const pageIndex = pageMapping.pageNumber - 1;
+        if (pageIndex < 0 || pageIndex >= pages.length) continue;
+
+        const page = pages[pageIndex];
+        const { width, height } = page.getSize();
+
+        for (const field of (pageMapping.fields || [])) {
+          const value = fieldValues[field.id] || "";
+          if (!value) continue;
+
+          const boxX = field.x * width;
+          const boxYFromTop = field.y * height;
+          const boxW = field.width * width;
+
+          const margin = 2;
+          const textX = boxX + margin;
+          const topY = height - boxYFromTop - margin;
+          const fontSize = 10;
+          const lineHeight = fontSize + 2;
+
+          const lines = String(value).split("\n");
+          let currentY = topY - fontSize;
+
+          for (const line of lines) {
+            if (currentY < 0) break;
+            page.drawText(line, {
+              x: textX,
+              y: currentY,
+              size: fontSize,
+              font,
+              color: rgb(0, 0, 0),
+              maxWidth: boxW - margin * 2
+            });
+            currentY -= lineHeight;
+          }
+        }
+      }
+
+      const pdfBytes = await pdfDocLocal.save();
+      const blob = new Blob([pdfBytes], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = safeBaseName(mapping.formName || "filled_form") + "_filled.pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      showToast("Filled PDF downloaded. Check your Downloads folder.");
+    }
+
+    downloadFilledPdfBtn.addEventListener("click", () => {
+      generateFilledPdf().catch(err => {
+        console.error("Error generating filled PDF:", err);
+        alert("Failed to generate filled PDF. See console for details.");
+      });
+    });
+
+    // AI prompt build
+    buildPromptBtn.addEventListener("click", () => {
+      const srcText = aiSourceTextInput.value || "";
+      if (!mapping.pages.length) { alert("No fields in mapping. Define fields first or load a MAP."); return; }
+
+      const fieldsSummary = {};
+      for (const page of mapping.pages) {
+        for (const field of (page.fields || [])) {
+          fieldsSummary[field.id] = { label: field.label || "", rubric: field.rubric || "" };
+        }
+      }
+
+      const formName = mapping.formName || "(unnamed form)";
+      const pdfName = mapping.pdfFileName || "";
+
+      const lines = [
+        "SYSTEM:",
+        "You are a structured information extraction engine.",
+        "You receive free-text source content and must return a single JSON object.",
+        "The JSON object's keys are exactly the field IDs listed below, and each value is a string (or null).",
+        "",
+        "Rules:",
+        "- Output must be valid JSON.",
+        "- Do not include any explanation, comments, or extra keys.",
+        "- If the source text does not contain enough information for a field, make an educated guess followed by '*'",
+        "",
+        `FORM NAME: ${formName}`,
+        pdfName ? `EXPECTED PDF FILE NAME: ${pdfName}` : "",
+        "",
+        "FIELDS (by field id):",
+        JSON.stringify(fieldsSummary, null, 2),
+        "",
+        "USER:",
+        "Here is the source text to extract from:",
+        '"""',
+        srcText,
+        '"""'
+      ];
+
+      aiPromptTextarea.value = lines.join("\n");
+      showToast("Prompt built. Copy it or open in selected LLM.");
+    });
+
+    applyJsonBtn.addEventListener("click", () => {
+      const raw = aiJsonResponseInput.value.trim();
+      if (!raw) { alert("Paste JSON from the AI first."); return; }
+
+      let obj;
+      try { obj = JSON.parse(raw); }
+      catch { alert("Could not parse JSON. Check for syntax errors."); return; }
+
+      if (typeof obj !== "object" || obj === null || Array.isArray(obj)) {
+        alert("Expected a JSON object with field IDs as keys.");
+        return;
+      }
+
+      let appliedCount = 0;
+      for (const page of mapping.pages) {
+        for (const field of (page.fields || [])) {
+          if (Object.prototype.hasOwnProperty.call(obj, field.id)) {
+            const v = obj[field.id];
+            fieldValues[field.id] = v == null ? "" : String(v);
+            appliedCount++;
+          }
+        }
+      }
+
+      if (!appliedCount) {
+        alert("No matching field IDs found in the JSON. Make sure keys match the mapping's field IDs.");
+      } else {
+        renderFormPreview();
+        showToast(`Applied values for ${appliedCount} fields. Review in Tab 2.`);
+      }
+    });
+
+    // Field reference list (AI tab)
+    function renderFieldReferenceList() {
+      const q = (fieldRefSearch.value || "").trim().toLowerCase();
+      const all = getAllFieldsFlattenedInOrder();
+
+      fieldRefList.innerHTML = "";
+      if (!all.length) {
+        const msg = document.createElement("div");
+        msg.style.fontSize = "0.85rem";
+        msg.style.color = "#6b7280";
+        msg.textContent = "No fields yet. Create fields or load a MAP.";
+        fieldRefList.appendChild(msg);
+        return;
+      }
+
+      const filtered = q ? all.filter(x =>
+        (x.id || "").toLowerCase().includes(q) ||
+        (x.label || "").toLowerCase().includes(q) ||
+        (x.rubric || "").toLowerCase().includes(q) ||
+        (`page ${x.pageNumber}`).includes(q)
+      ) : all;
+
+      for (const item of filtered) {
+        const div = document.createElement("div");
+        div.className = "field-ref-item";
+        div.title = [`Page: ${item.pageNumber}`, `ID: ${item.id}`, item.label ? `Label: ${item.label}` : "", item.rubric ? `Rubric: ${item.rubric}` : "Rubric: (none)"].filter(Boolean).join("\n");
+
+        const sw = `<span class="field-swatch" style="background:${colorForId(item.id)}; vertical-align:middle;"></span>`;
+
+        div.innerHTML = `
+          <div class="field-ref-id">${sw} ${escapeHtml(item.id)}</div>
+          <div class="field-ref-label">${escapeHtml(item.label || "(no label)")}</div>
+          <div class="field-ref-meta">Page ${item.pageNumber} • hover for rubric</div>
+        `;
+        fieldRefList.appendChild(div);
+      }
+    }
+
+    fieldRefSearch.addEventListener("input", renderFieldReferenceList);
+
+    async function copyTextToClipboard(text) {
+      try { await navigator.clipboard.writeText(text); return true; }
+      catch {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          const ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          return ok;
+        } catch { return false; }
+      }
+    }
+
+    copyPromptBtn.addEventListener("click", async () => {
+      const txt = aiPromptTextarea.value || "";
+      if (!txt.trim()) { alert("Build the AI prompt first."); return; }
+      showToast((await copyTextToClipboard(txt)) ? "Prompt copied to clipboard." : "Could not auto-copy. Copy manually.");
+    });
+
+    copyFieldIdsBtn.addEventListener("click", async () => {
+      const txt = getAllFieldsFlattenedInOrder().map(x => x.id).join("\n");
+      showToast((await copyTextToClipboard(txt)) ? "Field IDs copied." : "Could not auto-copy.");
+    });
+
+    copyFieldRubricsBtn.addEventListener("click", async () => {
+      const txt = getAllFieldsFlattenedInOrder()
+        .map(x => `- ${x.id} (${x.label || "no label"}) [Page ${x.pageNumber}]\n  Rubric: ${x.rubric || "(none)"}`)
+        .join("\n");
+      showToast((await copyTextToClipboard(txt)) ? "Fields + rubrics copied." : "Could not auto-copy.");
+    });
+
+    // LLM radios (precheck ChatGPT)
+    const LLM_TARGETS = [
+      { key: "chatgpt", name: "ChatGPT", url: "https://chatgpt.com/" },
+      { key: "claude",  name: "Claude",  url: "https://claude.ai/new" },
+      { key: "copilot", name: "Copilot", url: "https://copilot.microsoft.com/" },
+      { key: "gemini",  name: "Gemini",  url: "https://gemini.google.com/app" },
+      { key: "kimi",    name: "Kimi",    url: "https://kimi.moonshot.cn/" },
+      { key: "deepseek",name: "DeepSeek",url: "https://chat.deepseek.com/" },
+      { key: "xai",     name: "xAI (Grok)", url: "https://grok.com/" }
+    ];
+
+    function initLLMRadios() {
+      llmRadios.innerHTML = "";
+      for (const t of LLM_TARGETS) {
+        const wrap = document.createElement("label");
+        wrap.style.display = "inline-flex";
+        wrap.style.alignItems = "center";
+        wrap.style.gap = "0.35rem";
+        wrap.style.cursor = "pointer";
+
+        const rb = document.createElement("input");
+        rb.type = "radio";
+        rb.name = "llm_choice";
+        rb.value = t.key;
+        rb.checked = (t.key === "chatgpt"); // precheck ChatGPT
+
+        const txt = document.createElement("span");
+        txt.textContent = t.name;
+
+        wrap.appendChild(rb);
+        wrap.appendChild(txt);
+        llmRadios.appendChild(wrap);
+      }
+    }
+
+    function getSelectedLLMUrl() {
+      const sel = llmRadios.querySelector('input[type="radio"][name="llm_choice"]:checked');
+      const key = sel ? sel.value : "chatgpt";
+      return (LLM_TARGETS.find(x => x.key === key) || LLM_TARGETS[0]).url;
+    }
+
+    openLLMBtn.addEventListener("click", async () => {
+      const prompt = aiPromptTextarea.value || "";
+      if (!prompt.trim()) { alert("Build the AI prompt first."); return; }
+
+      const ok = await copyTextToClipboard(prompt);
+      const url = getSelectedLLMUrl();
+      const w = window.open(url, "_blank");
+      if (!ok) alert("Tab opened. Could not auto-copy prompt; copy it manually from the prompt box.");
+      else if (!w) alert("Prompt copied. Popups were blocked; allow popups and click again.");
+      else showToast("Prompt copied. Paste it into the opened LLM tab.");
+    });
+
+    // Init
+    function init() {
+      pdfCanvas.width = 1; pdfCanvas.height = 1;
+      ctx.clearRect(0,0,1,1);
+      initLLMRadios();
+      refreshStoredMappingsSelect();
+
+      // NEW: auto-restore last autosave if appropriate
+      maybeRestoreAutosaveOnInit();
+
+      updateAllDerivedViews();
+      renderFieldList();
+      updateFieldEditor();
+    }
+
+    init();
+  </script>
+</body>
+</html>
+
