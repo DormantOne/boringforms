@@ -1,0 +1,38 @@
+{
+  "formName": "pdawaiver",
+  "pdfFileName": "pdawaiver.pdf",
+  "pages": [
+    {
+      "pageNumber": 1,
+      "fields": [
+        {
+          "id": "field_1_1",
+          "label": "patient name",
+          "rubric": "full name of patient as available",
+          "x": 0.13379168937329702,
+          "y": 0.14333052631578946,
+          "width": 0.7166212534059946,
+          "height": 0.034736842105263156
+        },
+        {
+          "id": "field_1_2",
+          "label": "diagnosis 1",
+          "rubric": "formal diagnosis 1 - main diagnosis",
+          "x": 0.27003133514986377,
+          "y": 0.3338568421052631,
+          "width": 0.6158038147138964,
+          "height": 0.02526315789473684
+        },
+        {
+          "id": "field_1_3",
+          "label": "ICD 10 for diagnosis 1",
+          "rubric": "closest descriptive icd 10",
+          "x": 0.046598228882833784,
+          "y": 0.3338568421052631,
+          "width": 0.20844686648501362,
+          "height": 0.023157894736842106
+        }
+      ]
+    }
+  ]
+}
