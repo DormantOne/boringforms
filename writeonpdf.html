@@ -2,662 +2,728 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PDF Scribble (one-file)</title>
-
-  <!-- Fabric.js (global) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
-  <!-- pdf-lib (global) -->
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PDF Write-On (Simple)</title>
   <style>
-    :root{
-      --bg:#0b1220; --text:#e9eefc; --muted:#aab6d6;
-      --border:rgba(255,255,255,.10); --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --radius:14px; --danger:#ff6b6b; --accent:#7aa2ff;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      background: radial-gradient(1200px 800px at 20% 0%, #132a5a 0%, var(--bg) 45%, #070b14 100%);
-      color:var(--text);
-      overflow:hidden;
-    }
-    header{
-      display:flex; align-items:center; justify-content:space-between;
-      padding:12px 14px; border-bottom:1px solid var(--border);
-      background: rgba(10,16,30,.55); backdrop-filter: blur(10px);
-    }
-    .brand{display:flex; gap:10px; align-items:center; font-weight:700}
-    .pill{
-      font-size:12px; color:var(--muted);
-      border:1px solid var(--border); background:rgba(255,255,255,.06);
-      padding:4px 10px; border-radius:999px;
-    }
-    .top-actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
-    .btn{
-      cursor:pointer; border:1px solid var(--border); background: rgba(255,255,255,.06);
-      color:var(--text); padding:8px 12px; border-radius:10px; box-shadow: 0 6px 16px rgba(0,0,0,.22);
-      transition: transform .05s ease, background .15s ease, border-color .15s ease;
-      user-select:none; font-size:13px; line-height:1;
-    }
-    .btn:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.18); }
-    .btn:active{ transform: translateY(1px); }
-    .btn.primary{ border-color: rgba(122,162,255,.35); background: rgba(122,162,255,.14); }
-    .btn.danger{ border-color: rgba(255,107,107,.35); background: rgba(255,107,107,.10); }
-    .btn.active{ outline:2px solid rgba(122,162,255,.45); }
-    input[type="file"]{ display:none; }
-    .status{ color: var(--muted); font-size:12px; max-width: 46ch; text-align:right; }
+    :root { --bg:#0b1220; --panel:#111a2e; --line:#26324d; --text:#e8eefc; --muted:#a9b7d6; --btn:#2b6cff; --danger:#e04040; }
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
+    header { display:flex; gap:12px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--line); background:#0a1020; position:sticky; top:0; z-index:10; }
+    header .group { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    header .spacer { flex:1; }
+    button { border:0; border-radius:8px; padding:8px 10px; background:var(--btn); color:white; cursor:pointer; font-weight:600; }
+    button.secondary { background:#1f2a44; color:var(--text); border:1px solid var(--line); }
+    button.danger { background:var(--danger); }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    input[type="file"] { color:var(--muted); }
+    input[type="text"], textarea, select { width:100%; box-sizing:border-box; border-radius:8px; border:1px solid var(--line); background:#0a1020; color:var(--text); padding:8px 10px; }
+    textarea { min-height:80px; resize:vertical; }
+    .wrap { display:grid; grid-template-columns: 1fr 340px; gap:12px; padding:12px; }
+    @media (max-width: 980px) { .wrap { grid-template-columns: 1fr; } }
 
-    .layout{ display:grid; grid-template-columns: 320px 1fr; height: calc(100% - 56px); }
-    aside{
-      border-right:1px solid var(--border); background: rgba(10,16,30,.45);
-      backdrop-filter: blur(10px); padding:14px; overflow:auto;
+    .stage {
+      background:#0a1020;
+      border:1px solid var(--line);
+      border-radius:12px;
+      overflow:auto;
+      padding:12px;
+      min-height: 60vh;
     }
-    .panel{
-      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
-      border:1px solid var(--border); border-radius: var(--radius);
-      padding:12px; box-shadow: var(--shadow); margin-bottom:12px;
-    }
-    .panel h3{
-      margin:0 0 10px 0; font-size:13px; color: var(--muted);
-      font-weight:700; letter-spacing:.3px; text-transform: uppercase;
-    }
-    .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:8px 0; }
-    .row .label{ color: var(--muted); font-size:12px; }
-    .row input[type="color"]{ width:44px; height:28px; border:none; padding:0; background:transparent; }
-    .row input[type="range"]{ width: 170px; }
-    .row input[type="text"]{
-      width: 100%; padding:9px 10px; border-radius:10px;
-      border:1px solid var(--border); background: rgba(0,0,0,.18);
-      color: var(--text); outline:none;
-    }
-    .hint{ color: var(--muted); font-size:12px; line-height:1.35; }
-    main{ position:relative; overflow:auto; padding: 18px; }
-    .stage{
-      display:inline-block; position:relative; border-radius: var(--radius);
-      border:1px solid var(--border); background: rgba(255,255,255,.03);
-      box-shadow: var(--shadow);
-    }
-    canvas{ display:block; }
-    #pdfCanvas{ position:absolute; left:0; top:0; z-index:1; }
-    #overlayCanvas{ position:absolute; left:0; top:0; z-index:2; }
+    .canvasStack { position:relative; display:inline-block; }
+    canvas { display:block; }
 
-    .kbd{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 11px; color: var(--muted);
-      border:1px solid var(--border); border-bottom-color: rgba(255,255,255,.18);
-      padding:2px 6px; border-radius: 7px; background: rgba(255,255,255,.06);
+    .side {
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px;
+      height: fit-content;
+      position:sticky;
+      top:64px;
     }
-    .toast{
-      position: fixed; right: 14px; bottom: 14px;
-      padding: 10px 12px; border-radius: 12px;
-      background: rgba(0,0,0,.55); border:1px solid var(--border);
-      color: var(--text); font-size: 13px; box-shadow: var(--shadow);
-      opacity:0; transform: translateY(6px); pointer-events:none;
-      transition: opacity .2s ease, transform .2s ease;
-      max-width: 56ch; backdrop-filter: blur(10px); z-index: 999;
+    .side h3 { margin:0 0 10px 0; font-size:14px; color:var(--muted); letter-spacing:.02em; text-transform:uppercase; }
+    .row { display:flex; gap:8px; align-items:center; }
+    .row > * { flex:1; }
+    .label { font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); background:#0a1020; border-radius:999px; color:var(--muted); font-size:12px; }
+    .list { margin-top:10px; border-top:1px solid var(--line); padding-top:10px; }
+    .item {
+      border:1px solid var(--line);
+      background:#0a1020;
+      border-radius:10px;
+      padding:8px;
+      margin-bottom:8px;
+      cursor:pointer;
     }
-    .toast.show{ opacity:1; transform: translateY(0); }
+    .item b { display:block; font-size:13px; color:var(--text); }
+    .item small { color:var(--muted); }
+    .banner {
+      display:none;
+      margin:12px;
+      padding:10px 12px;
+      border:1px solid #6b2f2f;
+      background:#2a0f12;
+      border-radius:10px;
+      color:#ffd7d7;
+    }
+    .banner.show { display:block; }
+    .hint { font-size:12px; color:var(--muted); line-height:1.35; }
+    kbd { background:#0a1020; border:1px solid var(--line); border-bottom-width:2px; padding:1px 6px; border-radius:6px; font-size:12px; }
   </style>
 </head>
-
 <body>
-<header>
-  <div class="brand">
-    <div>PDF Scribble</div>
-    <div class="pill">one-file • GitHub Pages ready</div>
-  </div>
-
-  <div class="top-actions">
-    <label class="btn primary" for="fileInput">Open PDF</label>
-    <input id="fileInput" type="file" accept="application/pdf" />
-    <button class="btn" id="exportBtn" title="Flatten annotations into a new PDF">Export PDF</button>
-    <div class="status" id="status">No PDF loaded.</div>
-  </div>
-</header>
-
-<div class="layout">
-  <aside>
-    <div class="panel">
-      <h3>Pages</h3>
-      <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
-        <button class="btn" id="prevBtn">Prev</button>
-        <button class="btn" id="nextBtn">Next</button>
-        <span class="hint" id="pageLabel">Page – / –</span>
-      </div>
-      <div class="row">
-        <div class="label">Zoom</div>
-        <input id="zoomRange" type="range" min="60" max="220" value="125" />
-      </div>
-      <div class="hint">Export renders at higher quality than on-screen zoom.</div>
+  <header>
+    <div class="group">
+      <input id="file" type="file" accept="application/pdf" />
+      <button id="export" class="secondary" disabled>Download Updated PDF</button>
     </div>
 
-    <div class="panel">
-      <h3>Tools</h3>
-      <div class="row" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
-        <button class="btn active" id="toolSelect">Select <span class="kbd">V</span></button>
-        <button class="btn" id="toolPen">Pen <span class="kbd">P</span></button>
-        <button class="btn" id="toolText">Text <span class="kbd">T</span></button>
-        <button class="btn" id="toolField">Field <span class="kbd">F</span></button>
-        <button class="btn danger" id="deleteBtn">Delete <span class="kbd">Del</span></button>
-      </div>
+    <div class="group">
+      <button id="prev" class="secondary" disabled>Prev</button>
+      <span class="pill">Page <span id="pageNum">–</span> / <span id="pageCount">–</span></span>
+      <button id="next" class="secondary" disabled>Next</button>
+    </div>
 
-      <div class="row">
-        <div class="label">Pen color</div>
-        <input id="penColor" type="color" value="#000000" />
-      </div>
-      <div class="row">
-        <div class="label">Pen width</div>
-        <input id="penWidth" type="range" min="1" max="24" value="3" />
-      </div>
+    <div class="spacer"></div>
 
-      <div class="hint" style="margin-top:8px;">
-        Text + Field are click-to-place. Double-click text to edit.
+    <div class="group">
+      <button id="toolSelect" class="secondary">Select/Move</button>
+      <button id="toolAdd" class="">Add Field</button>
+      <button id="del" class="danger" disabled>Delete</button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner"></div>
+
+  <div class="wrap">
+    <div class="stage">
+      <div class="canvasStack" id="stack">
+        <canvas id="pdfCanvas"></canvas>
+        <canvas id="drawCanvas"></canvas>
       </div>
     </div>
 
-    <div class="panel">
-      <h3>Field editor</h3>
-      <div class="row" style="flex-direction:column; align-items:stretch;">
-        <div class="label" style="margin-bottom:6px;">Label</div>
-        <input id="fieldLabelInput" type="text" placeholder="Select a field…" />
-      </div>
-      <div class="row" style="flex-direction:column; align-items:stretch;">
-        <div class="label" style="margin-bottom:6px;">Value</div>
-        <input id="fieldValueInput" type="text" placeholder="Select a field…" />
-      </div>
-      <div class="hint">Select a Field object to edit label/value here.</div>
-    </div>
+    <div class="side">
+      <h3>Selected Field</h3>
 
-    <div class="panel">
-      <h3>Notes</h3>
       <div class="hint">
-        Serve over HTTP (GitHub Pages or <span class="kbd">python -m http.server</span>).<br/>
-        Export flattens pages (looks right, not editable fields).
+        Tool: <span id="toolName" class="pill" style="display:inline-flex; padding:4px 10px;">Select/Move</span><br/>
+        Tips: click “Add Field”, then click on the page to place it.
+        Use <kbd>Del</kbd> to delete selected.
+      </div>
+
+      <div class="label">Label</div>
+      <input id="fieldLabel" type="text" placeholder="e.g., Patient Name" disabled />
+
+      <div class="label">Value</div>
+      <textarea id="fieldValue" placeholder="Type what you want written onto the PDF..." disabled></textarea>
+
+      <div class="row" style="margin-top:10px;">
+        <button id="apply" class="secondary" disabled>Apply Text</button>
+        <button id="delete2" class="danger" disabled>Delete</button>
+      </div>
+
+      <div class="list">
+        <h3>Fields on Page</h3>
+        <div id="fieldList" class="hint">Load a PDF and add a field.</div>
       </div>
     </div>
-  </aside>
+  </div>
 
-  <main>
-    <div class="stage" id="stage" style="display:none;">
-      <canvas id="pdfCanvas"></canvas>
-      <canvas id="overlayCanvas"></canvas>
-    </div>
-  </main>
-</div>
+<script>
+(() => {
+  // ---------- robust script loading (fixes pdfjsLib undefined) ----------
+  const banner = document.getElementById('banner');
 
-<div class="toast" id="toast"></div>
-
-<script type="module">
-(async () => {
-  // Import PDF.js as a module (modern builds are .mjs on cdnjs)
-  let pdfjsLib;
-  try {
-    pdfjsLib = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/pdf.mjs");
-  } catch (e) {
-    console.error(e);
-    document.getElementById("status").textContent =
-      "Failed to load PDF.js. Use GitHub Pages / HTTP server (not file://) and check network/CSP.";
-    return;
+  function showBanner(html) {
+    banner.innerHTML = html;
+    banner.classList.add('show');
   }
 
-  // Worker path (same version)
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/pdf.worker.mjs";
-
-  const fileInput = document.getElementById("fileInput");
-  const statusEl = document.getElementById("status");
-  const stageEl = document.getElementById("stage");
-  const pdfCanvas = document.getElementById("pdfCanvas");
-  const overlayCanvasEl = document.getElementById("overlayCanvas");
-
-  const prevBtn = document.getElementById("prevBtn");
-  const nextBtn = document.getElementById("nextBtn");
-  const pageLabel = document.getElementById("pageLabel");
-  const zoomRange = document.getElementById("zoomRange");
-
-  const toolSelectBtn = document.getElementById("toolSelect");
-  const toolPenBtn = document.getElementById("toolPen");
-  const toolTextBtn = document.getElementById("toolText");
-  const toolFieldBtn = document.getElementById("toolField");
-  const deleteBtn = document.getElementById("deleteBtn");
-  const exportBtn = document.getElementById("exportBtn");
-
-  const penColor = document.getElementById("penColor");
-  const penWidth = document.getElementById("penWidth");
-
-  const fieldLabelInput = document.getElementById("fieldLabelInput");
-  const fieldValueInput = document.getElementById("fieldValueInput");
-
-  const toastEl = document.getElementById("toast");
-  function toast(msg) {
-    toastEl.textContent = msg;
-    toastEl.classList.add("show");
-    clearTimeout(toastEl._t);
-    toastEl._t = setTimeout(() => toastEl.classList.remove("show"), 2200);
+  function loadScript(url) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = url;
+      s.async = true;
+      s.onload = () => resolve(url);
+      s.onerror = () => reject(new Error('Failed to load: ' + url));
+      document.head.appendChild(s);
+    });
   }
 
-  const appState = {
-    pdf: null,
-    pdfBytes: null,
-    pageCount: 0,
-    pageIndex: 0,
-    viewScale: 1.25,
-    exportScale: 2.0,
-    pageStates: [],
-    rendering: false,
-    currentTool: "select",
-    _loading: false,
-  };
-
-  const fcanvas = new fabric.Canvas("overlayCanvas", {
-    preserveObjectStacking: true,
-    selection: true,
-    stopContextMenu: true,
-  });
-
-  function setBrushFromUI() {
-    fcanvas.freeDrawingBrush = new fabric.PencilBrush(fcanvas);
-    fcanvas.freeDrawingBrush.color = penColor.value;
-    fcanvas.freeDrawingBrush.width = Number(penWidth.value);
-  }
-  setBrushFromUI();
-
-  penColor.addEventListener("input", () => {
-    setBrushFromUI();
-    const o = fcanvas.getActiveObject();
-    if (o && (o.type === "i-text" || o.type === "text")) {
-      o.set("fill", penColor.value);
-      fcanvas.requestRenderAll();
-      saveCurrentPageState();
+  async function loadAny(candidates, testFn) {
+    let lastErr = null;
+    for (const url of candidates) {
+      try {
+        await loadScript(url);
+        if (testFn()) return url;
+      } catch (e) {
+        lastErr = e;
+      }
     }
-  });
-  penWidth.addEventListener("input", setBrushFromUI);
+    throw lastErr || new Error('All candidates failed.');
+  }
 
-  const toolButtons = [
-    ["select", toolSelectBtn],
-    ["pen", toolPenBtn],
-    ["text", toolTextBtn],
-    ["field", toolFieldBtn],
+  // Paired PDF.js lib + worker URLs
+  const PDFJS_CANDIDATES = [
+    {
+      lib: "https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js",
+      worker: "https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js"
+    },
+    {
+      lib: "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js",
+      worker: "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js"
+    },
+    {
+      lib: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js",
+      worker: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js"
+    },
+    {
+      lib: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js",
+      worker: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js"
+    }
   ];
 
-  function setTool(name) {
-    appState.currentTool = name;
-    toolButtons.forEach(([tool, btn]) => btn.classList.toggle("active", tool === name));
+  const FABRIC_CANDIDATES = [
+    "https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js",
+    "https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"
+  ];
 
-    if (name === "pen") {
-      fcanvas.isDrawingMode = true;
-      fcanvas.selection = false;
-      fcanvas.defaultCursor = "crosshair";
-      setBrushFromUI();
-    } else {
-      fcanvas.isDrawingMode = false;
-      fcanvas.selection = true;
-      fcanvas.defaultCursor = "default";
+  const PDFLIB_CANDIDATES = [
+    "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js",
+    "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"
+  ];
+
+  async function loadPdfJsWithWorker() {
+    let lastErr = null;
+    for (const c of PDFJS_CANDIDATES) {
+      try {
+        await loadScript(c.lib);
+        if (!window.pdfjsLib) throw new Error("pdfjsLib global not created");
+        // Worker URL must match lib version when possible
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = c.worker;
+        return c;
+      } catch (e) {
+        lastErr = e;
+      }
     }
-    toast(`Tool: ${name}`);
+    throw lastErr || new Error("Failed to load PDF.js");
   }
 
-  toolSelectBtn.addEventListener("click", () => setTool("select"));
-  toolPenBtn.addEventListener("click", () => setTool("pen"));
-  toolTextBtn.addEventListener("click", () => setTool("text"));
-  toolFieldBtn.addEventListener("click", () => setTool("field"));
-
-  function isFieldGroup(obj) {
-    return obj && obj.type === "group" && obj.isField === true;
-  }
-
-  function clearFieldEditor() {
-    fieldLabelInput.value = "";
-    fieldValueInput.value = "";
-    fieldLabelInput.disabled = true;
-    fieldValueInput.disabled = true;
-  }
-  clearFieldEditor();
-
-  function updateFieldEditorFromSelection() {
-    const obj = fcanvas.getActiveObject();
-    if (isFieldGroup(obj)) {
-      fieldLabelInput.disabled = false;
-      fieldValueInput.disabled = false;
-      fieldLabelInput.value = obj.fieldLabel ?? "";
-      fieldValueInput.value = obj.fieldValue ?? "";
-    } else {
-      clearFieldEditor();
+  async function ensureLibs() {
+    try {
+      await loadAny(FABRIC_CANDIDATES, () => !!window.fabric);
+      await loadAny(PDFLIB_CANDIDATES, () => !!window.PDFLib);
+      await loadPdfJsWithWorker();
+    } catch (e) {
+      showBanner(`
+        <b>Couldn’t load required libraries.</b><br/>
+        This usually means your network is blocking CDNs or you’re offline.<br/>
+        Error: <code>${String(e.message || e)}</code><br/><br/>
+        Fix: try a different network, or download these files and serve locally:
+        <ul>
+          <li>PDF.js <code>pdf.min.js</code> + <code>pdf.worker.min.js</code></li>
+          <li>Fabric.js <code>fabric.min.js</code></li>
+          <li>pdf-lib <code>pdf-lib.min.js</code></li>
+        </ul>
+      `);
+      throw e;
     }
   }
 
-  fcanvas.on("selection:created", updateFieldEditorFromSelection);
-  fcanvas.on("selection:updated", updateFieldEditorFromSelection);
-  fcanvas.on("selection:cleared", updateFieldEditorFromSelection);
+  // ---------- app state ----------
+  const fileEl = document.getElementById('file');
+  const exportBtn = document.getElementById('export');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const pageNumEl = document.getElementById('pageNum');
+  const pageCountEl = document.getElementById('pageCount');
+
+  const toolSelectBtn = document.getElementById('toolSelect');
+  const toolAddBtn = document.getElementById('toolAdd');
+  const delBtn = document.getElementById('del');
+
+  const toolNameEl = document.getElementById('toolName');
+  const fieldLabelEl = document.getElementById('fieldLabel');
+  const fieldValueEl = document.getElementById('fieldValue');
+  const applyBtn = document.getElementById('apply');
+  const delete2Btn = document.getElementById('delete2');
+  const fieldListEl = document.getElementById('fieldList');
+
+  const pdfCanvas = document.getElementById('pdfCanvas');
+  const drawCanvas = document.getElementById('drawCanvas');
+  const stack = document.getElementById('stack');
+  const pdfCtx = pdfCanvas.getContext('2d');
+
+  const state = {
+    pdfBytes: null,
+    pdfDoc: null,
+    fileNameBase: "annotated",
+    page: 1,
+    pageCount: 0,
+    viewScale: 1.35,
+    tool: "select", // 'select' | 'add'
+    fabricCanvas: null,
+    pageStates: {} // pageNumber -> { json, w, h }
+  };
+
+  function setTool(tool) {
+    state.tool = tool;
+    toolNameEl.textContent = tool === "add" ? "Add Field" : "Select/Move";
+    toolAddBtn.classList.toggle('secondary', tool !== "add");
+    toolSelectBtn.classList.toggle('secondary', tool !== "select");
+    if (state.fabricCanvas) {
+      state.fabricCanvas.isDrawingMode = false; // keep simple
+      state.fabricCanvas.selection = (tool === "select");
+      state.fabricCanvas.defaultCursor = (tool === "add") ? "crosshair" : "default";
+    }
+  }
+
+  function enableFieldEditor(enabled) {
+    fieldLabelEl.disabled = !enabled;
+    fieldValueEl.disabled = !enabled;
+    applyBtn.disabled = !enabled;
+    delete2Btn.disabled = !enabled;
+  }
+
+  function setDeleteEnabled(enabled) {
+    delBtn.disabled = !enabled;
+    delete2Btn.disabled = !enabled;
+  }
+
+  function safeBaseName(name) {
+    return (name || "annotated")
+      .replace(/\.pdf$/i, "")
+      .replace(/[^\w\-]+/g, "_")
+      .replace(/_+/g, "_")
+      .slice(0, 80) || "annotated";
+  }
 
   function saveCurrentPageState() {
-    if (!appState.pdf) return;
-    appState.pageStates[appState.pageIndex] = fcanvas.toJSON(["isField", "fieldLabel", "fieldValue"]);
+    if (!state.fabricCanvas) return;
+    const pageNo = state.page;
+    const json = state.fabricCanvas.toJSON(["data"]);
+    state.pageStates[pageNo] = { json, w: state.fabricCanvas.getWidth(), h: state.fabricCanvas.getHeight() };
   }
 
-  function applyFieldEdits() {
-    const obj = fcanvas.getActiveObject();
-    if (!isFieldGroup(obj)) return;
-
-    const label = fieldLabelInput.value ?? "";
-    const value = fieldValueInput.value ?? "";
-
-    obj.fieldLabel = label;
-    obj.fieldValue = value;
-
-    const labelText = obj._objects?.[1];
-    const valueText = obj._objects?.[2];
-    if (labelText) labelText.set("text", label);
-    if (valueText) valueText.set("text", value);
-
-    obj.addWithUpdate();
+  function scaleObjectsToCanvas(fcanvas, sx, sy) {
+    fcanvas.getObjects().forEach(obj => {
+      obj.set({
+        left: obj.left * sx,
+        top: obj.top * sy,
+        scaleX: obj.scaleX * sx,
+        scaleY: obj.scaleY * sy
+      });
+      obj.setCoords();
+    });
     fcanvas.requestRenderAll();
-    saveCurrentPageState();
   }
-  fieldLabelInput.addEventListener("input", applyFieldEdits);
-  fieldValueInput.addEventListener("input", applyFieldEdits);
 
-  function deleteSelection() {
-    const active = fcanvas.getActiveObject();
+  function clearSelectionUI() {
+    enableFieldEditor(false);
+    fieldLabelEl.value = "";
+    fieldValueEl.value = "";
+    setDeleteEnabled(false);
+  }
+
+  function getSelectedFieldGroup() {
+    if (!state.fabricCanvas) return null;
+    const obj = state.fabricCanvas.getActiveObject();
+    if (!obj) return null;
+    if (obj.type === "activeSelection") return null;
+    if (obj.data && obj.data.type === "field") return obj;
+    return null;
+  }
+
+  function refreshFieldList() {
+    if (!state.fabricCanvas) {
+      fieldListEl.textContent = "Load a PDF and add a field.";
+      return;
+    }
+    const fields = state.fabricCanvas.getObjects().filter(o => o.data && o.data.type === "field");
+    if (!fields.length) {
+      fieldListEl.innerHTML = `<div class="hint">No fields on this page yet.</div>`;
+      return;
+    }
+    fieldListEl.innerHTML = "";
+    fields.forEach(f => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      const label = (f.data.label || "Field").trim() || "Field";
+      div.innerHTML = `<b>${escapeHtml(label)}</b><small>${escapeHtml(f.data.id || "")}</small>`;
+      div.addEventListener('click', () => {
+        state.fabricCanvas.setActiveObject(f);
+        state.fabricCanvas.requestRenderAll();
+        syncSelectionUI();
+      });
+      fieldListEl.appendChild(div);
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s || "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+
+  function syncSelectionUI() {
+    const group = getSelectedFieldGroup();
+    if (!group) {
+      clearSelectionUI();
+      return;
+    }
+    enableFieldEditor(true);
+    fieldLabelEl.value = group.data.label || "";
+    fieldValueEl.value = group.data.value || "";
+    setDeleteEnabled(true);
+  }
+
+  function createFieldAt(x, y) {
+    const fabric = window.fabric;
+
+    const id = "field_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
+    const labelText = new fabric.Text("Label", {
+      left: 0, top: -16, fontSize: 12, fill: "#111",
+      backgroundColor: "rgba(255,255,255,0.85)",
+      padding: 2
+    });
+
+    const rect = new fabric.Rect({
+      left: 0, top: 0, width: 220, height: 60,
+      rx: 6, ry: 6,
+      fill: "rgba(255, 215, 64, 0.18)",
+      stroke: "#ffcc33",
+      strokeWidth: 2
+    });
+
+    const valueText = new fabric.Textbox("", {
+      left: 8, top: 8,
+      width: 204,
+      fontSize: 14,
+      fill: "#111"
+    });
+
+    const group = new fabric.Group([rect, valueText, labelText], {
+      left: x, top: y,
+      originX: "left", originY: "top",
+      cornerStyle: "circle",
+      transparentCorners: false,
+      padding: 2
+    });
+
+    group.data = { type: "field", id, label: "Label", value: "" };
+
+    state.fabricCanvas.add(group);
+    state.fabricCanvas.setActiveObject(group);
+    state.fabricCanvas.requestRenderAll();
+    refreshFieldList();
+    syncSelectionUI();
+  }
+
+  async function renderPage(pageNo) {
+    const pdfjsLib = window.pdfjsLib;
+    if (!state.pdfDoc) return;
+
+    // Save previous page overlay
+    saveCurrentPageState();
+
+    state.page = pageNo;
+    pageNumEl.textContent = String(state.page);
+    pageCountEl.textContent = String(state.pageCount);
+    prevBtn.disabled = (state.page <= 1);
+    nextBtn.disabled = (state.page >= state.pageCount);
+
+    const page = await state.pdfDoc.getPage(pageNo);
+    const viewport = page.getViewport({ scale: state.viewScale });
+
+    // PDF background canvas
+    pdfCanvas.width = Math.floor(viewport.width);
+    pdfCanvas.height = Math.floor(viewport.height);
+
+    // Overlay canvas (fabric)
+    drawCanvas.width = pdfCanvas.width;
+    drawCanvas.height = pdfCanvas.height;
+
+    // Keep stack sized to content
+    stack.style.width = pdfCanvas.width + "px";
+    stack.style.height = pdfCanvas.height + "px";
+    drawCanvas.style.position = "absolute";
+    drawCanvas.style.left = "0";
+    drawCanvas.style.top = "0";
+
+    await page.render({ canvasContext: pdfCtx, viewport }).promise;
+
+    const fabric = window.fabric;
+    if (!state.fabricCanvas) {
+      state.fabricCanvas = new fabric.Canvas(drawCanvas, {
+        preserveObjectStacking: true,
+        selection: true
+      });
+
+      // click-to-add
+      state.fabricCanvas.on("mouse:down", (opt) => {
+        if (state.tool !== "add") return;
+        // don't add if clicking an existing object
+        if (opt.target) return;
+        const p = state.fabricCanvas.getPointer(opt.e);
+        createFieldAt(p.x, p.y);
+        setTool("select");
+      });
+
+      // selection hooks
+      state.fabricCanvas.on("selection:created", syncSelectionUI);
+      state.fabricCanvas.on("selection:updated", syncSelectionUI);
+      state.fabricCanvas.on("selection:cleared", () => { clearSelectionUI(); });
+
+      // keyboard delete
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Delete" || e.key === "Backspace") {
+          const active = state.fabricCanvas.getActiveObject();
+          if (active) {
+            e.preventDefault();
+            deleteSelected();
+          }
+        }
+      });
+    } else {
+      // resize existing fabric canvas
+      const oldW = state.fabricCanvas.getWidth();
+      const oldH = state.fabricCanvas.getHeight();
+      state.fabricCanvas.setWidth(drawCanvas.width);
+      state.fabricCanvas.setHeight(drawCanvas.height);
+      // if we resized, we’ll scale restored objects when loading state below
+      state.fabricCanvas.requestRenderAll();
+      // (no scaling here; we do it when restoring)
+    }
+
+    // restore overlay for this page (if any)
+    state.fabricCanvas.clear();
+
+    const saved = state.pageStates[pageNo];
+    if (saved && saved.json) {
+      const oldW = saved.w || drawCanvas.width;
+      const oldH = saved.h || drawCanvas.height;
+      await new Promise((resolve) => {
+        state.fabricCanvas.loadFromJSON(saved.json, () => resolve());
+      });
+      // scale if canvas size differs
+      const sx = drawCanvas.width / oldW;
+      const sy = drawCanvas.height / oldH;
+      if (Math.abs(sx - 1) > 0.001 || Math.abs(sy - 1) > 0.001) {
+        scaleObjectsToCanvas(state.fabricCanvas, sx, sy);
+      }
+      state.fabricCanvas.requestRenderAll();
+    }
+
+    setTool(state.tool); // ensure correct cursor/selection mode
+    refreshFieldList();
+    clearSelectionUI();
+  }
+
+  function deleteSelected() {
+    if (!state.fabricCanvas) return;
+    const active = state.fabricCanvas.getActiveObject();
     if (!active) return;
 
     if (active.type === "activeSelection") {
-      active.forEachObject(obj => fcanvas.remove(obj));
-      fcanvas.discardActiveObject();
+      active.getObjects().forEach(obj => state.fabricCanvas.remove(obj));
+      state.fabricCanvas.discardActiveObject();
     } else {
-      fcanvas.remove(active);
-      fcanvas.discardActiveObject();
+      state.fabricCanvas.remove(active);
+      state.fabricCanvas.discardActiveObject();
     }
-    fcanvas.requestRenderAll();
-    saveCurrentPageState();
-    clearFieldEditor();
+    state.fabricCanvas.requestRenderAll();
+    refreshFieldList();
+    clearSelectionUI();
   }
-  deleteBtn.addEventListener("click", deleteSelection);
 
-  fcanvas.on("mouse:down", (opt) => {
-    if (!appState.pdf) return;
+  function applyTextToSelected() {
+    const group = getSelectedFieldGroup();
+    if (!group) return;
 
-    const tool = appState.currentTool;
-    if (tool !== "text" && tool !== "field") return;
+    const newLabel = (fieldLabelEl.value || "").trim();
+    const newValue = (fieldValueEl.value || "");
 
-    if (opt.target) return; // clicked existing object
-    const p = fcanvas.getPointer(opt.e);
+    // group objects: [rect, valueText, labelText]
+    const objs = group.getObjects();
+    const rect = objs[0];
+    const valueText = objs[1];
+    const labelText = objs[2];
 
-    if (tool === "text") {
-      const t = new fabric.IText("Type here", {
-        left: p.x, top: p.y,
-        fill: penColor.value,
-        fontSize: 18,
-        fontFamily: "Arial",
-      });
-      fcanvas.add(t);
-      fcanvas.setActiveObject(t);
-      fcanvas.requestRenderAll();
-      saveCurrentPageState();
-      setTool("select");
-      setTimeout(() => t.enterEditing(), 10);
-      return;
-    }
+    group.data.label = newLabel;
+    group.data.value = newValue;
 
-    if (tool === "field") {
-      const rect = new fabric.Rect({
-        width: 260, height: 62, rx: 10, ry: 10,
-        fill: "rgba(255,255,255,0.60)",
-        stroke: "rgba(0,0,0,0.35)",
-        strokeWidth: 1,
-      });
+    labelText.set("text", newLabel || "Label");
+    valueText.set("text", newValue || "");
 
-      const labelText = new fabric.Text("Label", {
-        left: 12, top: 8,
-        fontSize: 12, fontFamily: "Arial",
-        fill: "rgba(0,0,0,0.70)",
-      });
+    // expand rect height a bit if multi-line
+    const lines = String(newValue).split("\n").length;
+    const newH = Math.max(60, 24 + lines * 18);
+    rect.set("height", newH);
+    valueText.set("height", newH - 16);
 
-      const valueText = new fabric.Text("Value", {
-        left: 12, top: 26,
-        fontSize: 18, fontFamily: "Arial",
-        fill: "rgba(0,0,0,0.95)",
-      });
+    group._calcBounds();
+    group._updateObjectsCoords();
+    group.setCoords();
 
-      const group = new fabric.Group([rect, labelText, valueText], {
-        left: p.x, top: p.y,
-        hasRotatingPoint: true,
-        cornerStyle: "circle",
-        transparentCorners: false,
-        padding: 6,
-      });
+    state.fabricCanvas.requestRenderAll();
+    refreshFieldList();
+  }
 
-      group.isField = true;
-      group.fieldLabel = "Label";
-      group.fieldValue = "Value";
+  async function exportAnnotatedPdf() {
+    if (!state.pdfBytes || !state.pdfDoc) return;
 
-      fcanvas.add(group);
-      fcanvas.setActiveObject(group);
-      fcanvas.requestRenderAll();
-      saveCurrentPageState();
-      updateFieldEditorFromSelection();
-      setTool("select");
-    }
-  });
-
-  fcanvas.on("path:created", saveCurrentPageState);
-  fcanvas.on("object:modified", saveCurrentPageState);
-  fcanvas.on("object:added", () => { if (!appState._loading) saveCurrentPageState(); });
-
-  async function renderPage(index) {
-    if (!appState.pdf || appState.rendering) return;
-    appState.rendering = true;
-
-    index = Math.max(0, Math.min(appState.pageCount - 1, index));
     saveCurrentPageState();
 
-    appState.pageIndex = index;
-    pageLabel.textContent = `Page ${index + 1} / ${appState.pageCount}`;
-    statusEl.textContent = `Rendering page ${index + 1}…`;
+    const pdfjsLib = window.pdfjsLib;
+    const { PDFDocument } = window.PDFLib;
 
-    try {
-      const page = await appState.pdf.getPage(index + 1);
-      const viewport = page.getViewport({ scale: appState.viewScale });
+    const origPdf = await PDFDocument.load(state.pdfBytes);
+    const outPdf = await PDFDocument.create();
+    const origPages = origPdf.getPages();
 
-      const w = Math.floor(viewport.width);
-      const h = Math.floor(viewport.height);
+    const EXPORT_SCALE = 2.0; // higher = sharper output (slower)
 
-      pdfCanvas.width = w; pdfCanvas.height = h;
-      overlayCanvasEl.width = w; overlayCanvasEl.height = h;
+    for (let i = 1; i <= state.pageCount; i++) {
+      // render PDF page background via pdf.js
+      const page = await state.pdfDoc.getPage(i);
+      const viewport = page.getViewport({ scale: EXPORT_SCALE });
 
-      stageEl.style.display = "inline-block";
-      stageEl.style.width = w + "px";
-      stageEl.style.height = h + "px";
+      const bg = document.createElement("canvas");
+      bg.width = Math.floor(viewport.width);
+      bg.height = Math.floor(viewport.height);
+      const bgCtx = bg.getContext("2d");
 
-      fcanvas.setWidth(w);
-      fcanvas.setHeight(h);
+      await page.render({ canvasContext: bgCtx, viewport }).promise;
 
-      const ctx = pdfCanvas.getContext("2d", { alpha: false });
-      ctx.setTransform(1,0,0,1,0,0);
-      ctx.clearRect(0,0,w,h);
+      // render overlay via fabric static canvas, scaled up
+      const overlay = new window.fabric.StaticCanvas(null, { width: bg.width, height: bg.height });
 
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      const saved = state.pageStates[i];
+      if (saved && saved.json) {
+        await new Promise((resolve) => overlay.loadFromJSON(saved.json, () => resolve()));
 
-      appState._loading = true;
-      fcanvas.clear();
-
-      const json = appState.pageStates[index];
-      if (json) {
-        await new Promise((resolve) => {
-          fcanvas.loadFromJSON(json, () => { fcanvas.renderAll(); resolve(); });
-        });
-      } else {
-        fcanvas.renderAll();
+        const sx = bg.width / (saved.w || bg.width);
+        const sy = bg.height / (saved.h || bg.height);
+        if (Math.abs(sx - 1) > 0.001 || Math.abs(sy - 1) > 0.001) {
+          overlay.getObjects().forEach(obj => {
+            obj.set({
+              left: obj.left * sx,
+              top: obj.top * sy,
+              scaleX: obj.scaleX * sx,
+              scaleY: obj.scaleY * sy
+            });
+            obj.setCoords();
+          });
+          overlay.requestRenderAll();
+        }
       }
-      appState._loading = false;
 
-      statusEl.textContent = `Ready • ${appState.pageCount} page(s)`;
-      updateFieldEditorFromSelection();
-    } catch (err) {
-      console.error(err);
-      statusEl.textContent = "Error rendering page.";
-      toast("Render error (see console).");
-    } finally {
-      appState.rendering = false;
+      // composite overlay onto background
+      const overlayEl = overlay.getElement();
+      bgCtx.drawImage(overlayEl, 0, 0);
+
+      // convert composite to PNG bytes
+      const dataUrl = bg.toDataURL("image/png");
+      const pngBytes = await (await fetch(dataUrl)).arrayBuffer();
+
+      // new page in output PDF with same size as original page
+      const srcPage = origPages[i - 1];
+      const { width, height } = srcPage.getSize();
+
+      const outPage = outPdf.addPage([width, height]);
+      const embedded = await outPdf.embedPng(pngBytes);
+
+      outPage.drawImage(embedded, { x: 0, y: 0, width, height });
     }
+
+    const outBytes = await outPdf.save();
+    const blob = new Blob([outBytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = state.fileNameBase + "_updated.pdf";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
-  fileInput.addEventListener("change", async () => {
-    const file = fileInput.files?.[0];
-    if (!file) return;
+  // ---------- UI wiring ----------
+  fileEl.addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
 
-    statusEl.textContent = "Loading PDF…";
-    toast("Loading PDF…");
+    const bytes = await f.arrayBuffer();
+    state.pdfBytes = bytes;
+    state.fileNameBase = safeBaseName(f.name);
 
-    try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      appState.pdfBytes = bytes;
+    const pdfjsLib = window.pdfjsLib;
+    const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(bytes) });
+    state.pdfDoc = await loadingTask.promise;
 
-      const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
-      appState.pdf = pdf;
-      appState.pageCount = pdf.numPages;
-      appState.pageIndex = 0;
-      appState.pageStates = new Array(appState.pageCount).fill(null);
+    state.pageCount = state.pdfDoc.numPages;
+    state.page = 1;
 
-      await renderPage(0);
-      toast(`Loaded: ${file.name}`);
-    } catch (err) {
-      console.error(err);
-      statusEl.textContent = "Failed to load PDF.";
-      toast("Failed to load PDF (see console).");
-    } finally {
-      fileInput.value = "";
-    }
+    pageCountEl.textContent = String(state.pageCount);
+    pageNumEl.textContent = "1";
+
+    prevBtn.disabled = true;
+    nextBtn.disabled = (state.pageCount <= 1);
+
+    exportBtn.disabled = false;
+
+    // reset overlays
+    state.pageStates = {};
+    if (state.fabricCanvas) state.fabricCanvas.clear();
+    clearSelectionUI();
+    refreshFieldList();
+
+    await renderPage(1);
+
+    showBanner(""); banner.classList.remove('show');
   });
 
-  prevBtn.addEventListener("click", () => renderPage(appState.pageIndex - 1));
-  nextBtn.addEventListener("click", () => renderPage(appState.pageIndex + 1));
-
-  zoomRange.addEventListener("input", async () => {
-    appState.viewScale = Number(zoomRange.value) / 100;
-    await renderPage(appState.pageIndex);
+  prevBtn.addEventListener('click', async () => {
+    if (!state.pdfDoc || state.page <= 1) return;
+    await renderPage(state.page - 1);
+  });
+  nextBtn.addEventListener('click', async () => {
+    if (!state.pdfDoc || state.page >= state.pageCount) return;
+    await renderPage(state.page + 1);
   });
 
-  window.addEventListener("keydown", (e) => {
-    const ae = document.activeElement;
-    const typing = ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable);
+  toolSelectBtn.addEventListener('click', () => setTool("select"));
+  toolAddBtn.addEventListener('click', () => setTool("add"));
 
-    if ((e.key === "Delete" || e.key === "Backspace") && !typing) {
-      e.preventDefault();
-      deleteSelection();
-      return;
-    }
-    if (typing && e.key !== "Escape") return;
+  delBtn.addEventListener('click', deleteSelected);
+  delete2Btn.addEventListener('click', deleteSelected);
+  applyBtn.addEventListener('click', applyTextToSelected);
 
-    const k = e.key.toLowerCase();
-    if (k === "v") setTool("select");
-    if (k === "p") setTool("pen");
-    if (k === "t") setTool("text");
-    if (k === "f") setTool("field");
-    if (k === "arrowleft") renderPage(appState.pageIndex - 1);
-    if (k === "arrowright") renderPage(appState.pageIndex + 1);
-    if ((e.ctrlKey || e.metaKey) && k === "s") {
-      e.preventDefault();
-      exportFlattenedPDF();
-    }
-  });
-
-  function dataUrlToU8(dataUrl) {
-    const b64 = dataUrl.split(",")[1];
-    const bin = atob(b64);
-    const u8 = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    return u8;
-  }
-
-  async function renderPageToPng(pageIndex, scale) {
-    const page = await appState.pdf.getPage(pageIndex + 1);
-    const viewport = page.getViewport({ scale });
-
-    const w = Math.floor(viewport.width);
-    const h = Math.floor(viewport.height);
-
-    const bg = document.createElement("canvas");
-    bg.width = w; bg.height = h;
-    const bgCtx = bg.getContext("2d", { alpha: false });
-    bgCtx.setTransform(1,0,0,1,0,0);
-    bgCtx.clearRect(0,0,w,h);
-    await page.render({ canvasContext: bgCtx, viewport }).promise;
-
-    const overlay = new fabric.StaticCanvas(null, { width: w, height: h });
-    const json = appState.pageStates[pageIndex];
-    if (json) {
-      await new Promise((resolve) => overlay.loadFromJSON(json, () => { overlay.renderAll(); resolve(); }));
-    } else {
-      overlay.renderAll();
-    }
-
-    bgCtx.drawImage(overlay.getElement(), 0, 0);
-    overlay.dispose();
-
-    return bg.toDataURL("image/png");
-  }
-
-  async function exportFlattenedPDF() {
-    if (!appState.pdf || !appState.pdfBytes) {
-      toast("Load a PDF first.");
-      return;
-    }
-
-    saveCurrentPageState();
+  exportBtn.addEventListener('click', async () => {
     exportBtn.disabled = true;
-    statusEl.textContent = "Exporting…";
-    toast("Exporting…");
-
+    exportBtn.textContent = "Building PDF...";
     try {
-      const { PDFDocument } = window.PDFLib;
-
-      const original = await PDFDocument.load(appState.pdfBytes);
-      const origPages = original.getPages();
-      const out = await PDFDocument.create();
-
-      for (let i = 0; i < appState.pageCount; i++) {
-        statusEl.textContent = `Exporting… page ${i + 1} / ${appState.pageCount}`;
-        const pngDataUrl = await renderPageToPng(i, appState.exportScale);
-        const pngBytes = dataUrlToU8(pngDataUrl);
-        const img = await out.embedPng(pngBytes);
-
-        const { width, height } = origPages[i].getSize();
-        const page = out.addPage([width, height]);
-        page.drawImage(img, { x: 0, y: 0, width, height });
-      }
-
-      const bytes = await out.save();
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "annotated.pdf";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
-      statusEl.textContent = "Export complete.";
-      toast("Saved: annotated.pdf");
+      await exportAnnotatedPdf();
     } catch (err) {
       console.error(err);
-      statusEl.textContent = "Export failed.";
-      toast("Export failed (see console).");
+      showBanner(`<b>Export failed.</b><br/><code>${escapeHtml(String(err && err.message ? err.message : err))}</code>`);
     } finally {
+      exportBtn.textContent = "Download Updated PDF";
       exportBtn.disabled = false;
     }
-  }
+  });
 
-  exportBtn.addEventListener("click", exportFlattenedPDF);
+  // Keep delete/apply enabled only when a field is selected
+  fieldLabelEl.addEventListener('input', () => {});
+  fieldValueEl.addEventListener('input', () => {});
 
-  // Start tool
-  setTool("select");
+  // ---------- boot ----------
+  (async () => {
+    await ensureLibs();
+    // now safe to reference window.pdfjsLib etc
+    setTool("select");
+  })();
 })();
 </script>
 </body>
