@@ -3,11 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PDF Write-On (Drag Boxes)</title>
+  <title>PDF Write-On (Boxes + Side Editor)</title>
   <style>
     :root{
       --bg:#0b1220; --panel:#111a2e; --line:#26324d; --text:#e8eefc; --muted:#a9b7d6;
       --btn:#2b6cff; --danger:#e04040; --ok:#22c55e;
+      --boxBorder: rgba(255,255,255,0.30);
+      --boxFill: rgba(255,255,255,0.06);
+      --boxBorderSel: rgba(34,197,94,0.92);
+      --boxFillSel: rgba(34,197,94,0.12);
     }
     body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
     header{
@@ -17,17 +21,22 @@
     }
     .group{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .spacer{ flex:1; }
-    button{ border:0; border-radius:10px; padding:8px 10px; background:var(--btn); color:white; cursor:pointer; font-weight:700; }
+    button{
+      border:0; border-radius:10px; padding:8px 10px; background:var(--btn); color:white;
+      cursor:pointer; font-weight:800;
+    }
     button.secondary{ background:#1f2a44; color:var(--text); border:1px solid var(--line); }
     button.danger{ background:var(--danger); }
     button:disabled{ opacity:.55; cursor:not-allowed; }
+
     input[type="file"]{ color:var(--muted); }
     input[type="text"], textarea{
       width:100%; box-sizing:border-box; border-radius:10px; border:1px solid var(--line);
       background:#0a1020; color:var(--text); padding:8px 10px;
     }
-    textarea{ min-height:80px; resize:vertical; }
-    .wrap{ display:grid; grid-template-columns:1fr 340px; gap:12px; padding:12px; }
+    textarea{ min-height:120px; resize:vertical; line-height:1.25; }
+
+    .wrap{ display:grid; grid-template-columns: 1fr 360px; gap:12px; padding:12px; }
     @media (max-width: 980px){ .wrap{ grid-template-columns:1fr; } .side{ position:static !important; } }
 
     .stage{
@@ -37,85 +46,72 @@
     .stack{ position:relative; display:inline-block; }
     #pdfCanvas{ display:block; background:#0a1020; }
 
-    /* Overlay that receives drag-to-create */
     #overlay{
-      position:absolute; left:0; top:0;
-      right:0; bottom:0;
+      position:absolute; left:0; top:0; right:0; bottom:0;
       pointer-events:auto;
     }
 
-    /* Selection rectangle while dragging */
+    /* drag-to-create marquee */
     #marquee{
-      position:absolute; border:2px dashed rgba(255,255,255,0.7);
+      position:absolute; border:2px dashed rgba(255,255,255,0.75);
       background: rgba(255,255,255,0.08);
       display:none; pointer-events:none;
+      border-radius:10px;
     }
 
-    /* Field box */
+    /* Field box (minimal) */
     .field{
       position:absolute;
-      border:2px solid rgba(255,204,51,0.95);
-      background: rgba(255,204,51,0.15);
+      border:1px solid var(--boxBorder);
+      background: var(--boxFill);
       border-radius:10px;
-      overflow:hidden;
       box-sizing:border-box;
-      resize: both;               /* native resize handle */
-      min-width: 120px;
-      min-height: 48px;
+      cursor:pointer;
+      user-select:none;
     }
     .field.selected{
-      border-color: rgba(34,197,94,0.95);
-      background: rgba(34,197,94,0.15);
-      box-shadow: 0 0 0 2px rgba(34,197,94,0.18);
+      border:2px solid var(--boxBorderSel);
+      background: var(--boxFillSel);
+      cursor: grab;
     }
+    .field.selected:active{ cursor: grabbing; }
 
-    .fieldHeader{
-      display:flex; align-items:center; gap:8px;
-      background: rgba(10,16,32,0.88);
-      color: var(--text);
-      padding: 6px 8px;
-      font-size: 12px;
-      user-select:none;
-      cursor: move;
-    }
-    .fieldHeader input{
-      flex:1;
-      background: transparent;
-      border:1px solid rgba(255,255,255,0.12);
-      color: var(--text);
-      border-radius:8px;
-      padding:4px 6px;
+    .badge{
+      position:absolute; top:6px; left:6px;
+      width:20px; height:20px; border-radius:999px;
+      display:grid; place-items:center;
+      background: rgba(10,16,32,0.85);
+      border:1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.92);
       font-size:12px;
-      min-width: 80px;
+      font-weight:900;
+      pointer-events:none;
     }
-    .fieldHeader button{
-      padding:4px 8px; border-radius:8px; font-size:12px;
+    .ghost{
+      position:absolute; left:32px; top:7px; right:8px;
+      font-size:12px;
+      color: rgba(255,255,255,0.55);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      pointer-events:none;
     }
 
-    .fieldBody{
-      padding:6px 8px;
-      height: calc(100% - 36px);
-      box-sizing:border-box;
+    /* subtle resize handle (only when selected) */
+    .resizer{
+      position:absolute; right:4px; bottom:4px;
+      width:14px; height:14px; border-radius:6px;
+      background: rgba(255,255,255,0.16);
+      border:1px solid rgba(255,255,255,0.18);
+      display:none;
+      cursor: se-resize;
     }
-    .fieldBody textarea{
-      width:100%;
-      height:100%;
-      resize:none;
-      background: rgba(255,255,255,0.92);
-      color:#111;
-      border:1px solid rgba(0,0,0,0.18);
-      border-radius:8px;
-      font-size: 14px;
-      line-height: 1.2;
-      padding: 8px;
-      box-sizing:border-box;
-    }
+    .field.selected .resizer{ display:block; }
 
     .pill{
       display:inline-flex; align-items:center; gap:8px;
       padding:6px 10px; border:1px solid var(--line); background:#0a1020;
       border-radius:999px; color:var(--muted); font-size:12px;
     }
+
     .banner{
       display:none; margin:12px; padding:10px 12px; border:1px solid #6b2f2f; background:#2a0f12;
       border-radius:12px; color:#ffd7d7;
@@ -129,15 +125,29 @@
     .side h3{ margin:0 0 10px; font-size:14px; color:var(--muted); letter-spacing:.02em; text-transform:uppercase; }
     .hint{ font-size:12px; color:var(--muted); line-height:1.35; }
     .label{ font-size:12px; color:var(--muted); margin:10px 0 6px; }
-    .list{ margin-top:10px; border-top:1px solid var(--line); padding-top:10px; }
+    .row{ display:flex; gap:8px; align-items:center; }
+    .k{ font-weight:900; color:var(--text); }
+    .kv{ color:var(--muted); font-size:12px; }
+
+    .list{
+      margin-top:12px;
+      border-top:1px solid var(--line);
+      padding-top:12px;
+    }
     .item{
       border:1px solid var(--line); background:#0a1020; border-radius:12px;
       padding:8px; margin-bottom:8px; cursor:pointer;
     }
+    .item.active{
+      border-color: rgba(34,197,94,0.55);
+      box-shadow: 0 0 0 2px rgba(34,197,94,0.10);
+    }
     .item b{ display:block; font-size:13px; color:var(--text); }
     .item small{ color:var(--muted); }
+    code{ color:#ffe3a3; }
   </style>
 </head>
+
 <body>
   <header>
     <div class="group">
@@ -154,7 +164,7 @@
     <div class="spacer"></div>
 
     <div class="group">
-      <button id="delete" class="danger" disabled>Delete Selected</button>
+      <span class="pill">Drag to add a box • Click to select • Drag selected to move</span>
     </div>
   </header>
 
@@ -171,13 +181,39 @@
     </div>
 
     <div class="side">
-      <h3>How to use</h3>
-      <div class="hint">
-        1) Load a PDF<br>
-        2) <b>Drag on the page</b> to draw a box<br>
-        3) Type in the box (saved live)<br>
-        4) Click a box to select; press <b>Delete</b> or click “Delete Selected”<br>
-        5) “Download Updated PDF” flattens everything into the PDF
+      <h3>Selected Field</h3>
+
+      <div id="noSel" class="hint">
+        Load a PDF, then <b>drag</b> on the page to draw a box.<br/>
+        Click a box to select it. The box shows a small badge like <code>A</code>.
+      </div>
+
+      <div id="selUI" style="display:none;">
+        <div class="row" style="justify-content:space-between;">
+          <div>
+            <div class="kv">Badge</div>
+            <div class="k" id="selTag">–</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="kv">Field ID</div>
+            <div class="k" style="font-size:12px;" id="selId">–</div>
+          </div>
+        </div>
+
+        <div class="label">Name (what this field is)</div>
+        <input id="selLabel" type="text" placeholder="e.g., Patient name" />
+
+        <div class="label">Value (what you want written into the PDF)</div>
+        <textarea id="selValue" placeholder="Type the value here..."></textarea>
+
+        <div class="row" style="margin-top:10px;">
+          <button id="deleteSel" class="danger" disabled>Delete</button>
+          <button id="clearSel" class="secondary" disabled>Clear Text</button>
+        </div>
+
+        <div class="hint" style="margin-top:10px;">
+          Tip: the box stays unobtrusive — the writing happens here on the side, and gets flattened into the PDF on export.
+        </div>
       </div>
 
       <div class="list">
@@ -194,7 +230,6 @@
   const exportBtn = document.getElementById('export');
   const prevBtn = document.getElementById('prev');
   const nextBtn = document.getElementById('next');
-  const delBtn = document.getElementById('delete');
   const pageNumEl = document.getElementById('pageNum');
   const pageCountEl = document.getElementById('pageCount');
 
@@ -205,13 +240,26 @@
   const marquee = document.getElementById('marquee');
   const fieldListEl = document.getElementById('fieldList');
 
+  const noSel = document.getElementById('noSel');
+  const selUI = document.getElementById('selUI');
+  const selTagEl = document.getElementById('selTag');
+  const selIdEl = document.getElementById('selId');
+  const selLabelEl = document.getElementById('selLabel');
+  const selValueEl = document.getElementById('selValue');
+  const deleteSelBtn = document.getElementById('deleteSel');
+  const clearSelBtn = document.getElementById('clearSel');
+
   function showBanner(html) {
     if (!html) { banner.classList.remove('show'); banner.innerHTML = ""; return; }
     banner.innerHTML = html;
     banner.classList.add('show');
   }
+  function escapeHtml(s){
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
 
-  // ---- Load libs with fallbacks (prevents pdfjsLib undefined) ----
+  // ---- robust CDN loading (prevents pdfjsLib undefined) ----
   function loadScript(url){
     return new Promise((resolve,reject)=>{
       const s=document.createElement('script');
@@ -266,7 +314,8 @@
     viewScale: 1.35,
     baseName: "updated",
     selectedId: null,
-    // pages[pageNumber] = [{id,label,value,x,y,w,h}] where x/y/w/h are normalized (0..1) relative to rendered canvas
+    tagCounter: 0,         // for A, B, C...
+    // pages[pageNumber] = [{id,tag,label,value,x,y,w,h}] normalized to current rendered canvas (0..1)
     pages: {}
   };
 
@@ -278,18 +327,53 @@
       .slice(0,80) || "updated";
   }
 
+  function indexToTag(i){
+    // 0->A ... 25->Z, 26->AA, 27->AB ...
+    let n = i + 1;
+    let s = "";
+    while (n > 0){
+      const r = (n - 1) % 26;
+      s = String.fromCharCode(65 + r) + s;
+      n = Math.floor((n - 1) / 26);
+    }
+    return s;
+  }
+
   function getPageFields(pageNo){
     if (!state.pages[pageNo]) state.pages[pageNo] = [];
     return state.pages[pageNo];
   }
+  function getFieldById(id){
+    const fields = getPageFields(state.page);
+    return fields.find(f => f.id === id) || null;
+  }
 
   function setSelected(id){
     state.selectedId = id;
-    delBtn.disabled = !id;
-    // highlight
+
     overlay.querySelectorAll('.field').forEach(el=>{
       el.classList.toggle('selected', el.dataset.id === id);
     });
+    overlay.querySelectorAll('.item').forEach(el=>{
+      el.classList.toggle('active', el.dataset.id === id);
+    });
+
+    const f = id ? getFieldById(id) : null;
+    const has = !!f;
+
+    noSel.style.display = has ? "none" : "block";
+    selUI.style.display = has ? "block" : "none";
+    deleteSelBtn.disabled = !has;
+    clearSelBtn.disabled = !has;
+    selLabelEl.disabled = !has;
+    selValueEl.disabled = !has;
+
+    if (has){
+      selTagEl.textContent = f.tag;
+      selIdEl.textContent = f.id;
+      selLabelEl.value = f.label || "";
+      selValueEl.value = f.value || "";
+    }
   }
 
   function clearOverlayFields(){
@@ -299,29 +383,18 @@
 
   function pxToNorm(rectPx){
     const W = pdfCanvas.width, H = pdfCanvas.height;
-    return {
-      x: rectPx.x / W,
-      y: rectPx.y / H,
-      w: rectPx.w / W,
-      h: rectPx.h / H
-    };
+    return { x: rectPx.x / W, y: rectPx.y / H, w: rectPx.w / W, h: rectPx.h / H };
   }
 
   function normToPx(n){
     const W = pdfCanvas.width, H = pdfCanvas.height;
-    return {
-      x: n.x * W,
-      y: n.y * H,
-      w: n.w * W,
-      h: n.h * H
-    };
+    return { x: n.x * W, y: n.y * H, w: n.w * W, h: n.h * H };
   }
 
   function clampFieldPx(p){
-    // keep within canvas (light clamp)
     const W = pdfCanvas.width, H = pdfCanvas.height;
-    p.w = Math.max(60, Math.min(p.w, W));
-    p.h = Math.max(36, Math.min(p.h, H));
+    p.w = Math.max(40, Math.min(p.w, W));
+    p.h = Math.max(26, Math.min(p.h, H));
     p.x = Math.max(0, Math.min(p.x, W - p.w));
     p.y = Math.max(0, Math.min(p.y, H - p.h));
     return p;
@@ -337,7 +410,8 @@
     for (const f of fields){
       const div = document.createElement('div');
       div.className = 'item';
-      div.innerHTML = `<b>${escapeHtml((f.label||"Field").trim() || "Field")}</b><small>${escapeHtml(f.id)}</small>`;
+      div.dataset.id = f.id;
+      div.innerHTML = `<b>${escapeHtml(f.tag)} — ${escapeHtml(f.label || "(unnamed)")}</b><small>${escapeHtml(f.id)}</small>`;
       div.addEventListener('click', ()=>{
         setSelected(f.id);
         const el = overlay.querySelector(`.field[data-id="${CSS.escape(f.id)}"]`);
@@ -345,43 +419,38 @@
       });
       fieldListEl.appendChild(div);
     }
+    // reapply active style
+    overlay.querySelectorAll('.item').forEach(el=>{
+      el.classList.toggle('active', el.dataset.id === state.selectedId);
+    });
   }
 
-  function escapeHtml(s){
-    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  function updateFieldDomGhost(el, field){
+    const ghost = el.querySelector('.ghost');
+    const name = (field.label || "").trim();
+    const val = (field.value || "").trim();
+    const snippet = val ? val.split(/\r?\n/)[0].slice(0, 60) : "";
+    ghost.textContent = name ? name : (snippet ? snippet : "");
   }
 
-  // ---- Build a field DOM element ----
   function createFieldDom(field){
     const el = document.createElement('div');
     el.className = 'field';
     el.dataset.id = field.id;
 
-    const header = document.createElement('div');
-    header.className = 'fieldHeader';
+    const badge = document.createElement('div');
+    badge.className = 'badge';
+    badge.textContent = field.tag;
 
-    const labelInput = document.createElement('input');
-    labelInput.value = field.label || "";
-    labelInput.placeholder = "Label";
+    const ghost = document.createElement('div');
+    ghost.className = 'ghost';
 
-    const xbtn = document.createElement('button');
-    xbtn.className = "danger";
-    xbtn.type = "button";
-    xbtn.textContent = "X";
+    const resizer = document.createElement('div');
+    resizer.className = 'resizer';
 
-    header.appendChild(labelInput);
-    header.appendChild(xbtn);
-
-    const body = document.createElement('div');
-    body.className = 'fieldBody';
-
-    const ta = document.createElement('textarea');
-    ta.value = field.value || "";
-    ta.placeholder = "Type here...";
-    body.appendChild(ta);
-
-    el.appendChild(header);
-    el.appendChild(body);
+    el.appendChild(badge);
+    el.appendChild(ghost);
+    el.appendChild(resizer);
 
     // position
     const p = normToPx(field);
@@ -389,72 +458,95 @@
     el.style.top = `${p.y}px`;
     el.style.width = `${p.w}px`;
     el.style.height = `${p.h}px`;
+    updateFieldDomGhost(el, field);
 
-    // selection
+    // select on click
     el.addEventListener('mousedown', (e)=>{
       e.stopPropagation();
       setSelected(field.id);
     });
 
-    // delete button
-    xbtn.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      deleteFieldById(field.id);
-    });
-
-    // label updates live
-    labelInput.addEventListener('input', ()=>{
-      field.label = labelInput.value;
-      refreshFieldList();
-    });
-
-    // value updates live
-    ta.addEventListener('input', ()=>{
-      field.value = ta.value;
-    });
-
-    // drag by header
+    // move if selected (drag anywhere on box)
     let dragging=false, startX=0, startY=0, startLeft=0, startTop=0;
-    header.addEventListener('mousedown', (e)=>{
+
+    el.addEventListener('pointerdown', (e)=>{
+      if (e.button !== 0) return;
+      if (e.target === resizer) return; // resizing handled separately
+      if (state.selectedId !== field.id) return; // first click selects; second drag moves
+
       e.preventDefault();
-      e.stopPropagation();
-      setSelected(field.id);
       dragging = true;
+      el.setPointerCapture(e.pointerId);
+
       startX = e.clientX;
       startY = e.clientY;
       startLeft = parseFloat(el.style.left);
-      startTop = parseFloat(el.style.top);
+      startTop  = parseFloat(el.style.top);
 
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp, { once:true });
+      const onMove = (ev)=>{
+        if (!dragging) return;
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        const p2 = clampFieldPx({
+          x: startLeft + dx,
+          y: startTop + dy,
+          w: parseFloat(el.style.width),
+          h: parseFloat(el.style.height)
+        });
+        el.style.left = `${p2.x}px`;
+        el.style.top  = `${p2.y}px`;
+      };
+
+      const onUp = ()=>{
+        dragging = false;
+        el.removeEventListener('pointermove', onMove);
+        el.removeEventListener('pointerup', onUp);
+        commitDomToField(el, field);
+      };
+
+      el.addEventListener('pointermove', onMove);
+      el.addEventListener('pointerup', onUp, { once:true });
     });
 
-    function onMove(e){
-      if (!dragging) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      const p2 = clampFieldPx({
-        x: startLeft + dx,
-        y: startTop + dy,
-        w: parseFloat(el.style.width),
-        h: parseFloat(el.style.height)
-      });
-      el.style.left = `${p2.x}px`;
-      el.style.top = `${p2.y}px`;
-    }
+    // resize handle (only visible when selected)
+    let resizing=false, rsX=0, rsY=0, rsW=0, rsH=0;
+    resizer.addEventListener('pointerdown', (e)=>{
+      if (e.button !== 0) return;
+      if (state.selectedId !== field.id) return;
+      e.preventDefault();
+      e.stopPropagation();
 
-    function onUp(){
-      dragging=false;
-      window.removeEventListener('mousemove', onMove);
-      // commit normalized coords
-      commitDomToField(el, field);
-    }
+      resizing = true;
+      resizer.setPointerCapture(e.pointerId);
 
-    // watch resize (native resize handle)
-    const ro = new ResizeObserver(()=> {
-      commitDomToField(el, field);
+      rsX = e.clientX; rsY = e.clientY;
+      rsW = parseFloat(el.style.width);
+      rsH = parseFloat(el.style.height);
+
+      const onMove = (ev)=>{
+        if (!resizing) return;
+        const dw = ev.clientX - rsX;
+        const dh = ev.clientY - rsY;
+        const p2 = clampFieldPx({
+          x: parseFloat(el.style.left),
+          y: parseFloat(el.style.top),
+          w: rsW + dw,
+          h: rsH + dh
+        });
+        el.style.width  = `${p2.w}px`;
+        el.style.height = `${p2.h}px`;
+      };
+
+      const onUp = ()=>{
+        resizing = false;
+        resizer.removeEventListener('pointermove', onMove);
+        resizer.removeEventListener('pointerup', onUp);
+        commitDomToField(el, field);
+      };
+
+      resizer.addEventListener('pointermove', onMove);
+      resizer.addEventListener('pointerup', onUp, { once:true });
     });
-    ro.observe(el);
 
     return el;
   }
@@ -467,7 +559,7 @@
       h: parseFloat(el.style.height)
     });
     el.style.left = `${p.x}px`;
-    el.style.top = `${p.y}px`;
+    el.style.top  = `${p.y}px`;
     el.style.width = `${p.w}px`;
     el.style.height = `${p.h}px`;
     const n = pxToNorm(p);
@@ -490,18 +582,17 @@
     if (idx !== -1) fields.splice(idx, 1);
     const el = overlay.querySelector(`.field[data-id="${CSS.escape(id)}"]`);
     if (el) el.remove();
-    if (state.selectedId === id) setSelected(null);
+    setSelected(null);
     refreshFieldList();
   }
 
-  // ---- Drag to create a new field box ----
+  // ---- drag-to-create a box ----
   let drawing=false, startPx=null;
 
   overlay.addEventListener('mousedown', (e)=>{
-    // only if not clicking inside an existing field
     if (e.target.closest('.field')) return;
-
     if (!state.pdfDoc) return;
+
     drawing = true;
     setSelected(null);
 
@@ -537,15 +628,15 @@
     marquee.style.height = `${h}px`;
   }
 
-  function onDrawUp(e){
+  function onDrawUp(){
     window.removeEventListener('mousemove', onDrawMove);
     if (!drawing) return;
     drawing = false;
 
     const left = parseFloat(marquee.style.left);
-    const top = parseFloat(marquee.style.top);
-    const w = parseFloat(marquee.style.width);
-    const h = parseFloat(marquee.style.height);
+    const top  = parseFloat(marquee.style.top);
+    const w    = parseFloat(marquee.style.width);
+    const h    = parseFloat(marquee.style.height);
     marquee.style.display = "none";
 
     if (w < 8 || h < 8) return;
@@ -555,7 +646,8 @@
 
     const fields = getPageFields(state.page);
     const id = `field_${state.page}_${Date.now().toString(36)}`;
-    const field = { id, label:"", value:"", x:n.x, y:n.y, w:n.w, h:n.h };
+    const tag = indexToTag(state.tagCounter++);
+    const field = { id, tag, label:"", value:"", x:n.x, y:n.y, w:n.w, h:n.h };
 
     fields.push(field);
 
@@ -563,11 +655,41 @@
     overlay.appendChild(el);
     setSelected(id);
     refreshFieldList();
-
-    // focus textarea
-    const ta = el.querySelector('textarea');
-    if (ta) ta.focus();
+    selLabelEl.focus();
   }
+
+  // ---- Side editor wiring ----
+  selLabelEl.addEventListener('input', ()=>{
+    const f = state.selectedId ? getFieldById(state.selectedId) : null;
+    if (!f) return;
+    f.label = selLabelEl.value;
+    // update overlay ghost + list
+    const el = overlay.querySelector(`.field[data-id="${CSS.escape(f.id)}"]`);
+    if (el) updateFieldDomGhost(el, f);
+    refreshFieldList();
+  });
+
+  selValueEl.addEventListener('input', ()=>{
+    const f = state.selectedId ? getFieldById(state.selectedId) : null;
+    if (!f) return;
+    f.value = selValueEl.value;
+    const el = overlay.querySelector(`.field[data-id="${CSS.escape(f.id)}"]`);
+    if (el) updateFieldDomGhost(el, f);
+  });
+
+  deleteSelBtn.addEventListener('click', ()=>{
+    if (!state.selectedId) return;
+    deleteFieldById(state.selectedId);
+  });
+
+  clearSelBtn.addEventListener('click', ()=>{
+    const f = state.selectedId ? getFieldById(state.selectedId) : null;
+    if (!f) return;
+    f.value = "";
+    selValueEl.value = "";
+    const el = overlay.querySelector(`.field[data-id="${CSS.escape(f.id)}"]`);
+    if (el) updateFieldDomGhost(el, f);
+  });
 
   // ---- Page rendering ----
   async function renderPage(pageNo){
@@ -598,36 +720,17 @@
 
   prevBtn.addEventListener('click', async ()=>{
     if (!state.pdfDoc || state.page <= 1) return;
+    setSelected(null);
     await renderPage(state.page - 1);
   });
   nextBtn.addEventListener('click', async ()=>{
     if (!state.pdfDoc || state.page >= state.pageCount) return;
+    setSelected(null);
     await renderPage(state.page + 1);
-  });
-
-  // delete selected
-  function deleteSelected(){
-    if (!state.selectedId) return;
-    deleteFieldById(state.selectedId);
-  }
-  delBtn.addEventListener('click', deleteSelected);
-
-  window.addEventListener('keydown', (e)=>{
-    if (e.key === "Delete" || e.key === "Backspace"){
-      // don't kill text while typing inside textarea/input
-      const tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
-      const typing = tag === "textarea" || tag === "input";
-      if (typing) return;
-      if (state.selectedId){
-        e.preventDefault();
-        deleteSelected();
-      }
-    }
   });
 
   // ---- Export flattened PDF ----
   function wrapText(font, text, size, maxWidth){
-    // simple word wrap; returns array of lines
     const words = String(text || "").replace(/\r/g,"").split(/\s+/).filter(Boolean);
     if (!words.length) return [];
 
@@ -640,9 +743,7 @@
       if (w <= maxWidth){
         line = test;
       } else {
-        // if single word too long, hard break
         if (font.widthOfTextAtSize(words[i], size) > maxWidth){
-          // break word into chunks
           const chunked = breakWord(font, words[i], size, maxWidth);
           lines.push(line);
           lines.push(...chunked.slice(0, chunked.length-1));
@@ -702,21 +803,16 @@
         const lineGap = 2;
         const maxW = Math.max(10, boxW - margin*2);
 
-        // support explicit newlines: wrap each paragraph separately
         const paragraphs = String(f.value || "").replace(/\r/g,"").split("\n");
         let lines = [];
         for (const para of paragraphs){
-          if (!para.trim()){
-            lines.push(""); // blank line
-            continue;
-          }
+          if (!para.trim()){ lines.push(""); continue; }
           lines.push(...wrapText(font, para, fontSize, maxW));
         }
 
-        // PDF coords: origin bottom-left; we want to start near top inside the box
+        // PDF coords: origin bottom-left; start near top inside box
         const topY = height - boxYTopFromTop - margin;
         let y = topY - fontSize;
-
         const minY = height - (boxYTopFromTop + boxH) + margin;
 
         for (const line of lines){
@@ -781,11 +877,12 @@
 
     exportBtn.disabled = false;
 
-    // keep any existing annotations? simplest: clear
+    // reset annotations for simplicity
     state.pages = {};
     state.selectedId = null;
-    delBtn.disabled = true;
+    state.tagCounter = 0;
 
+    setSelected(null);
     await renderPage(1);
   }
 
