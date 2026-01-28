@@ -5,25 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PDF Scribble (one-file)</title>
 
-  <!-- PDF.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.js"></script>
-  <!-- Fabric.js -->
+  <!-- Fabric.js (global) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
-  <!-- pdf-lib -->
+  <!-- pdf-lib (global) -->
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <style>
     :root{
-      --bg:#0b1220;
-      --panel:#0f1a30;
-      --panel2:#121f3a;
-      --text:#e9eefc;
-      --muted:#aab6d6;
-      --accent:#7aa2ff;
-      --danger:#ff6b6b;
-      --border:rgba(255,255,255,.10);
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-      --radius:14px;
+      --bg:#0b1220; --text:#e9eefc; --muted:#aab6d6;
+      --border:rgba(255,255,255,.10); --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:14px; --danger:#ff6b6b; --accent:#7aa2ff;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -35,45 +26,22 @@
       overflow:hidden;
     }
     header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:12px 14px;
-      border-bottom:1px solid var(--border);
-      background: rgba(10,16,30,.55);
-      backdrop-filter: blur(10px);
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 14px; border-bottom:1px solid var(--border);
+      background: rgba(10,16,30,.55); backdrop-filter: blur(10px);
     }
-    .brand{
-      display:flex; gap:10px; align-items:center;
-      font-weight:700; letter-spacing:.2px;
-    }
+    .brand{display:flex; gap:10px; align-items:center; font-weight:700}
     .pill{
-      font-size:12px;
-      color:var(--muted);
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.06);
-      padding:4px 10px;
-      border-radius:999px;
+      font-size:12px; color:var(--muted);
+      border:1px solid var(--border); background:rgba(255,255,255,.06);
+      padding:4px 10px; border-radius:999px;
     }
-    .top-actions{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
+    .top-actions{display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
     .btn{
-      cursor:pointer;
-      border:1px solid var(--border);
-      background: rgba(255,255,255,.06);
-      color:var(--text);
-      padding:8px 12px;
-      border-radius:10px;
-      box-shadow: 0 6px 16px rgba(0,0,0,.22);
+      cursor:pointer; border:1px solid var(--border); background: rgba(255,255,255,.06);
+      color:var(--text); padding:8px 12px; border-radius:10px; box-shadow: 0 6px 16px rgba(0,0,0,.22);
       transition: transform .05s ease, background .15s ease, border-color .15s ease;
-      user-select:none;
-      font-size:13px;
-      line-height:1;
+      user-select:none; font-size:13px; line-height:1;
     }
     .btn:hover{ background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.18); }
     .btn:active{ transform: translateY(1px); }
@@ -81,115 +49,56 @@
     .btn.danger{ border-color: rgba(255,107,107,.35); background: rgba(255,107,107,.10); }
     .btn.active{ outline:2px solid rgba(122,162,255,.45); }
     input[type="file"]{ display:none; }
+    .status{ color: var(--muted); font-size:12px; max-width: 46ch; text-align:right; }
 
-    .layout{
-      display:grid;
-      grid-template-columns: 320px 1fr;
-      height: calc(100% - 56px);
-    }
+    .layout{ display:grid; grid-template-columns: 320px 1fr; height: calc(100% - 56px); }
     aside{
-      border-right:1px solid var(--border);
-      background: rgba(10,16,30,.45);
-      backdrop-filter: blur(10px);
-      padding:14px;
-      overflow:auto;
+      border-right:1px solid var(--border); background: rgba(10,16,30,.45);
+      backdrop-filter: blur(10px); padding:14px; overflow:auto;
     }
     .panel{
       background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03));
-      border:1px solid var(--border);
-      border-radius: var(--radius);
-      padding:12px;
-      box-shadow: var(--shadow);
-      margin-bottom:12px;
+      border:1px solid var(--border); border-radius: var(--radius);
+      padding:12px; box-shadow: var(--shadow); margin-bottom:12px;
     }
     .panel h3{
-      margin:0 0 10px 0;
-      font-size:13px;
-      color: var(--muted);
-      font-weight:700;
-      letter-spacing:.3px;
-      text-transform: uppercase;
+      margin:0 0 10px 0; font-size:13px; color: var(--muted);
+      font-weight:700; letter-spacing:.3px; text-transform: uppercase;
     }
     .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:8px 0; }
     .row .label{ color: var(--muted); font-size:12px; }
     .row input[type="color"]{ width:44px; height:28px; border:none; padding:0; background:transparent; }
     .row input[type="range"]{ width: 170px; }
     .row input[type="text"]{
-      width: 100%;
-      padding:9px 10px;
-      border-radius:10px;
-      border:1px solid var(--border);
-      background: rgba(0,0,0,.18);
-      color: var(--text);
-      outline:none;
+      width: 100%; padding:9px 10px; border-radius:10px;
+      border:1px solid var(--border); background: rgba(0,0,0,.18);
+      color: var(--text); outline:none;
     }
-    .hint{
-      color: var(--muted);
-      font-size:12px;
-      line-height:1.35;
-    }
-    .status{
-      color: var(--muted);
-      font-size:12px;
-      max-width: 44ch;
-      text-align:right;
-      opacity:.95;
-    }
-
-    main{
-      position:relative;
-      overflow:auto;
-      padding: 18px;
-    }
+    .hint{ color: var(--muted); font-size:12px; line-height:1.35; }
+    main{ position:relative; overflow:auto; padding: 18px; }
     .stage{
-      display:inline-block;
-      position:relative;
-      border-radius: var(--radius);
-      border:1px solid var(--border);
-      background: rgba(255,255,255,.03);
+      display:inline-block; position:relative; border-radius: var(--radius);
+      border:1px solid var(--border); background: rgba(255,255,255,.03);
       box-shadow: var(--shadow);
     }
     canvas{ display:block; }
     #pdfCanvas{ position:absolute; left:0; top:0; z-index:1; }
     #overlayCanvas{ position:absolute; left:0; top:0; z-index:2; }
 
-    .pager{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
-      flex-wrap:wrap;
-    }
-    .pager .left, .pager .right{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
     .kbd{
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 11px;
-      color: var(--muted);
-      border:1px solid var(--border);
-      border-bottom-color: rgba(255,255,255,.18);
-      padding:2px 6px;
-      border-radius: 7px;
-      background: rgba(255,255,255,.06);
+      font-size: 11px; color: var(--muted);
+      border:1px solid var(--border); border-bottom-color: rgba(255,255,255,.18);
+      padding:2px 6px; border-radius: 7px; background: rgba(255,255,255,.06);
     }
-
     .toast{
-      position: fixed;
-      right: 14px;
-      bottom: 14px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: rgba(0,0,0,.55);
-      border:1px solid var(--border);
-      color: var(--text);
-      font-size: 13px;
-      box-shadow: var(--shadow);
-      opacity:0;
-      transform: translateY(6px);
-      pointer-events:none;
+      position: fixed; right: 14px; bottom: 14px;
+      padding: 10px 12px; border-radius: 12px;
+      background: rgba(0,0,0,.55); border:1px solid var(--border);
+      color: var(--text); font-size: 13px; box-shadow: var(--shadow);
+      opacity:0; transform: translateY(6px); pointer-events:none;
       transition: opacity .2s ease, transform .2s ease;
-      max-width: 54ch;
-      backdrop-filter: blur(10px);
-      z-index: 999;
+      max-width: 56ch; backdrop-filter: blur(10px); z-index: 999;
     }
     .toast.show{ opacity:1; transform: translateY(0); }
   </style>
@@ -214,31 +123,26 @@
   <aside>
     <div class="panel">
       <h3>Pages</h3>
-      <div class="pager">
-        <div class="left">
-          <button class="btn" id="prevBtn">Prev</button>
-          <button class="btn" id="nextBtn">Next</button>
-        </div>
-        <div class="right">
-          <span class="hint"><span id="pageLabel">Page – / –</span></span>
-        </div>
+      <div class="row" style="justify-content:flex-start; gap:10px; flex-wrap:wrap;">
+        <button class="btn" id="prevBtn">Prev</button>
+        <button class="btn" id="nextBtn">Next</button>
+        <span class="hint" id="pageLabel">Page – / –</span>
       </div>
-
       <div class="row">
         <div class="label">Zoom</div>
         <input id="zoomRange" type="range" min="60" max="220" value="125" />
       </div>
-      <div class="hint">Tip: export uses a higher-quality render than the on-screen zoom.</div>
+      <div class="hint">Export renders at higher quality than on-screen zoom.</div>
     </div>
 
     <div class="panel">
       <h3>Tools</h3>
       <div class="row" style="justify-content:flex-start; gap:8px; flex-wrap:wrap;">
-        <button class="btn active" id="toolSelect" title="Select/move objects (V)">Select <span class="kbd">V</span></button>
-        <button class="btn" id="toolPen" title="Draw (P)">Pen <span class="kbd">P</span></button>
-        <button class="btn" id="toolText" title="Click to add text (T)">Text <span class="kbd">T</span></button>
-        <button class="btn" id="toolField" title="Click to add a labeled field (F)">Field <span class="kbd">F</span></button>
-        <button class="btn danger" id="deleteBtn" title="Delete selection (Del)">Delete <span class="kbd">Del</span></button>
+        <button class="btn active" id="toolSelect">Select <span class="kbd">V</span></button>
+        <button class="btn" id="toolPen">Pen <span class="kbd">P</span></button>
+        <button class="btn" id="toolText">Text <span class="kbd">T</span></button>
+        <button class="btn" id="toolField">Field <span class="kbd">F</span></button>
+        <button class="btn danger" id="deleteBtn">Delete <span class="kbd">Del</span></button>
       </div>
 
       <div class="row">
@@ -251,7 +155,7 @@
       </div>
 
       <div class="hint" style="margin-top:8px;">
-        Text + Field are “click-to-place”. Double-click text to edit. Drag corners to resize/rotate.
+        Text + Field are click-to-place. Double-click text to edit.
       </div>
     </div>
 
@@ -265,15 +169,14 @@
         <div class="label" style="margin-bottom:6px;">Value</div>
         <input id="fieldValueInput" type="text" placeholder="Select a field…" />
       </div>
-      <div class="hint">Select a “Field” object to edit its label/value here.</div>
+      <div class="hint">Select a Field object to edit label/value here.</div>
     </div>
 
     <div class="panel">
       <h3>Notes</h3>
       <div class="hint">
-        • Works best served over HTTP (GitHub Pages or <span class="kbd">python -m http.server</span>).<br/>
-        • Export flattens each page (looks right, not editable fields).<br/>
-        • Big PDFs = slower export (it renders each page).
+        Serve over HTTP (GitHub Pages or <span class="kbd">python -m http.server</span>).<br/>
+        Export flattens pages (looks right, not editable fields).
       </div>
     </div>
   </aside>
@@ -288,14 +191,23 @@
 
 <div class="toast" id="toast"></div>
 
-<script>
-(() => {
-  // ----- PDF.js worker config -----
-  // Must match the pdf.js version above:
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.js";
+<script type="module">
+(async () => {
+  // Import PDF.js as a module (modern builds are .mjs on cdnjs)
+  let pdfjsLib;
+  try {
+    pdfjsLib = await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/pdf.mjs");
+  } catch (e) {
+    console.error(e);
+    document.getElementById("status").textContent =
+      "Failed to load PDF.js. Use GitHub Pages / HTTP server (not file://) and check network/CSP.";
+    return;
+  }
 
-  // ----- UI elements -----
+  // Worker path (same version)
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/pdf.worker.mjs";
+
   const fileInput = document.getElementById("fileInput");
   const statusEl = document.getElementById("status");
   const stageEl = document.getElementById("stage");
@@ -328,20 +240,19 @@
     toastEl._t = setTimeout(() => toastEl.classList.remove("show"), 2200);
   }
 
-  // ----- App state -----
   const appState = {
     pdf: null,
     pdfBytes: null,
     pageCount: 0,
-    pageIndex: 0,     // 0-based
-    viewScale: 1.25,  // on-screen
-    exportScale: 2.0, // export quality
-    pageStates: [],   // per-page Fabric JSON
+    pageIndex: 0,
+    viewScale: 1.25,
+    exportScale: 2.0,
+    pageStates: [],
     rendering: false,
     currentTool: "select",
+    _loading: false,
   };
 
-  // ----- Fabric canvas -----
   const fcanvas = new fabric.Canvas("overlayCanvas", {
     preserveObjectStacking: true,
     selection: true,
@@ -357,7 +268,6 @@
 
   penColor.addEventListener("input", () => {
     setBrushFromUI();
-    // also update active text if any
     const o = fcanvas.getActiveObject();
     if (o && (o.type === "i-text" || o.type === "text")) {
       o.set("fill", penColor.value);
@@ -367,7 +277,6 @@
   });
   penWidth.addEventListener("input", setBrushFromUI);
 
-  // Tool switching
   const toolButtons = [
     ["select", toolSelectBtn],
     ["pen", toolPenBtn],
@@ -397,25 +306,10 @@
   toolTextBtn.addEventListener("click", () => setTool("text"));
   toolFieldBtn.addEventListener("click", () => setTool("field"));
 
-  // Deletion
-  function deleteSelection() {
-    const active = fcanvas.getActiveObject();
-    if (!active) return;
-
-    if (active.type === "activeSelection") {
-      active.forEachObject(obj => fcanvas.remove(obj));
-      fcanvas.discardActiveObject();
-    } else {
-      fcanvas.remove(active);
-      fcanvas.discardActiveObject();
-    }
-    fcanvas.requestRenderAll();
-    saveCurrentPageState();
-    clearFieldEditor();
+  function isFieldGroup(obj) {
+    return obj && obj.type === "group" && obj.isField === true;
   }
-  deleteBtn.addEventListener("click", deleteSelection);
 
-  // Field editor wiring
   function clearFieldEditor() {
     fieldLabelInput.value = "";
     fieldValueInput.value = "";
@@ -423,10 +317,6 @@
     fieldValueInput.disabled = true;
   }
   clearFieldEditor();
-
-  function isFieldGroup(obj) {
-    return obj && obj.type === "group" && obj.isField === true;
-  }
 
   function updateFieldEditorFromSelection() {
     const obj = fcanvas.getActiveObject();
@@ -444,6 +334,11 @@
   fcanvas.on("selection:updated", updateFieldEditorFromSelection);
   fcanvas.on("selection:cleared", updateFieldEditorFromSelection);
 
+  function saveCurrentPageState() {
+    if (!appState.pdf) return;
+    appState.pageStates[appState.pageIndex] = fcanvas.toJSON(["isField", "fieldLabel", "fieldValue"]);
+  }
+
   function applyFieldEdits() {
     const obj = fcanvas.getActiveObject();
     if (!isFieldGroup(obj)) return;
@@ -454,7 +349,6 @@
     obj.fieldLabel = label;
     obj.fieldValue = value;
 
-    // group children: [rect, labelText, valueText]
     const labelText = obj._objects?.[1];
     const valueText = obj._objects?.[2];
     if (labelText) labelText.set("text", label);
@@ -464,37 +358,46 @@
     fcanvas.requestRenderAll();
     saveCurrentPageState();
   }
-
   fieldLabelInput.addEventListener("input", applyFieldEdits);
   fieldValueInput.addEventListener("input", applyFieldEdits);
 
-  // Click-to-place for Text/Field tools
+  function deleteSelection() {
+    const active = fcanvas.getActiveObject();
+    if (!active) return;
+
+    if (active.type === "activeSelection") {
+      active.forEachObject(obj => fcanvas.remove(obj));
+      fcanvas.discardActiveObject();
+    } else {
+      fcanvas.remove(active);
+      fcanvas.discardActiveObject();
+    }
+    fcanvas.requestRenderAll();
+    saveCurrentPageState();
+    clearFieldEditor();
+  }
+  deleteBtn.addEventListener("click", deleteSelection);
+
   fcanvas.on("mouse:down", (opt) => {
     if (!appState.pdf) return;
 
     const tool = appState.currentTool;
     if (tool !== "text" && tool !== "field") return;
 
-    const evt = opt.e;
-    // Ignore if you clicked on an existing object (so you can select/move it)
-    if (opt.target) return;
-
-    const p = fcanvas.getPointer(evt);
+    if (opt.target) return; // clicked existing object
+    const p = fcanvas.getPointer(opt.e);
 
     if (tool === "text") {
       const t = new fabric.IText("Type here", {
-        left: p.x,
-        top: p.y,
+        left: p.x, top: p.y,
         fill: penColor.value,
         fontSize: 18,
         fontFamily: "Arial",
-        backgroundColor: "rgba(255,255,255,0.0)",
       });
       fcanvas.add(t);
       fcanvas.setActiveObject(t);
       fcanvas.requestRenderAll();
       saveCurrentPageState();
-      // Let them edit immediately
       setTool("select");
       setTimeout(() => t.enterEditing(), 10);
       return;
@@ -502,34 +405,26 @@
 
     if (tool === "field") {
       const rect = new fabric.Rect({
-        width: 260,
-        height: 62,
-        rx: 10,
-        ry: 10,
+        width: 260, height: 62, rx: 10, ry: 10,
         fill: "rgba(255,255,255,0.60)",
         stroke: "rgba(0,0,0,0.35)",
         strokeWidth: 1,
       });
 
       const labelText = new fabric.Text("Label", {
-        left: 12,
-        top: 8,
-        fontSize: 12,
-        fontFamily: "Arial",
+        left: 12, top: 8,
+        fontSize: 12, fontFamily: "Arial",
         fill: "rgba(0,0,0,0.70)",
       });
 
       const valueText = new fabric.Text("Value", {
-        left: 12,
-        top: 26,
-        fontSize: 18,
-        fontFamily: "Arial",
+        left: 12, top: 26,
+        fontSize: 18, fontFamily: "Arial",
         fill: "rgba(0,0,0,0.95)",
       });
 
       const group = new fabric.Group([rect, labelText, valueText], {
-        left: p.x,
-        top: p.y,
+        left: p.x, top: p.y,
         hasRotatingPoint: true,
         cornerStyle: "circle",
         transparentCorners: false,
@@ -546,36 +441,18 @@
       saveCurrentPageState();
       updateFieldEditorFromSelection();
       setTool("select");
-      return;
     }
   });
 
-  // Save page state whenever a change happens
-  function saveCurrentPageState() {
-    if (!appState.pdf) return;
-    const i = appState.pageIndex;
-    appState.pageStates[i] = fcanvas.toJSON(["isField", "fieldLabel", "fieldValue"]);
-  }
+  fcanvas.on("path:created", saveCurrentPageState);
+  fcanvas.on("object:modified", saveCurrentPageState);
+  fcanvas.on("object:added", () => { if (!appState._loading) saveCurrentPageState(); });
 
-  // Also save on common Fabric mutations
-  fcanvas.on("path:created", () => { saveCurrentPageState(); });
-  fcanvas.on("object:modified", () => { saveCurrentPageState(); });
-  fcanvas.on("object:added", (e) => {
-    // Avoid saving while loading JSON
-    if (appState._loading) return;
-    saveCurrentPageState();
-  });
-
-  // ----- PDF rendering -----
   async function renderPage(index) {
-    if (!appState.pdf) return;
-    if (appState.rendering) return;
+    if (!appState.pdf || appState.rendering) return;
     appState.rendering = true;
 
-    // clamp
     index = Math.max(0, Math.min(appState.pageCount - 1, index));
-
-    // save current page state before switching
     saveCurrentPageState();
 
     appState.pageIndex = index;
@@ -586,48 +463,38 @@
       const page = await appState.pdf.getPage(index + 1);
       const viewport = page.getViewport({ scale: appState.viewScale });
 
-      // Size canvases
       const w = Math.floor(viewport.width);
       const h = Math.floor(viewport.height);
 
-      pdfCanvas.width = w;
-      pdfCanvas.height = h;
-      overlayCanvasEl.width = w;
-      overlayCanvasEl.height = h;
+      pdfCanvas.width = w; pdfCanvas.height = h;
+      overlayCanvasEl.width = w; overlayCanvasEl.height = h;
 
-      // Size stage wrapper
       stageEl.style.display = "inline-block";
       stageEl.style.width = w + "px";
       stageEl.style.height = h + "px";
 
-      // Resize Fabric internal
       fcanvas.setWidth(w);
       fcanvas.setHeight(h);
 
-      // Render PDF into background canvas
       const ctx = pdfCanvas.getContext("2d", { alpha: false });
       ctx.setTransform(1,0,0,1,0,0);
       ctx.clearRect(0,0,w,h);
 
       await page.render({ canvasContext: ctx, viewport }).promise;
 
-      // Load overlay JSON for this page
       appState._loading = true;
       fcanvas.clear();
 
       const json = appState.pageStates[index];
       if (json) {
         await new Promise((resolve) => {
-          fcanvas.loadFromJSON(json, () => {
-            fcanvas.renderAll();
-            resolve();
-          });
+          fcanvas.loadFromJSON(json, () => { fcanvas.renderAll(); resolve(); });
         });
       } else {
         fcanvas.renderAll();
       }
-
       appState._loading = false;
+
       statusEl.textContent = `Ready • ${appState.pageCount} page(s)`;
       updateFieldEditorFromSelection();
     } catch (err) {
@@ -639,7 +506,6 @@
     }
   }
 
-  // ----- Loading a PDF -----
   fileInput.addEventListener("change", async () => {
     const file = fileInput.files?.[0];
     if (!file) return;
@@ -657,9 +523,6 @@
       appState.pageIndex = 0;
       appState.pageStates = new Array(appState.pageCount).fill(null);
 
-      stageEl.style.display = "inline-block";
-      document.getElementById("stage").style.display = "inline-block";
-
       await renderPage(0);
       toast(`Loaded: ${file.name}`);
     } catch (err) {
@@ -667,56 +530,42 @@
       statusEl.textContent = "Failed to load PDF.";
       toast("Failed to load PDF (see console).");
     } finally {
-      // allow re-selecting same file later
       fileInput.value = "";
     }
   });
 
-  // ----- Paging -----
   prevBtn.addEventListener("click", () => renderPage(appState.pageIndex - 1));
   nextBtn.addEventListener("click", () => renderPage(appState.pageIndex + 1));
 
-  // ----- Zoom -----
   zoomRange.addEventListener("input", async () => {
-    const v = Number(zoomRange.value) / 100;
-    appState.viewScale = v;
+    appState.viewScale = Number(zoomRange.value) / 100;
     await renderPage(appState.pageIndex);
   });
 
-  // ----- Keyboard shortcuts -----
   window.addEventListener("keydown", (e) => {
-    if (e.key === "Delete" || e.key === "Backspace") {
-      // Backspace can be annoying while editing text fields
-      const activeEl = document.activeElement;
-      const typing = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.isContentEditable);
-      if (!typing) {
-        e.preventDefault();
-        deleteSelection();
-      }
+    const ae = document.activeElement;
+    const typing = ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable);
+
+    if ((e.key === "Delete" || e.key === "Backspace") && !typing) {
+      e.preventDefault();
+      deleteSelection();
       return;
     }
-
-    // Ignore shortcuts while typing in inputs (except Escape)
-    const ae = document.activeElement;
-    const inInput = ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA");
-    if (inInput && e.key !== "Escape") return;
+    if (typing && e.key !== "Escape") return;
 
     const k = e.key.toLowerCase();
     if (k === "v") setTool("select");
     if (k === "p") setTool("pen");
     if (k === "t") setTool("text");
     if (k === "f") setTool("field");
-
     if (k === "arrowleft") renderPage(appState.pageIndex - 1);
     if (k === "arrowright") renderPage(appState.pageIndex + 1);
-
     if ((e.ctrlKey || e.metaKey) && k === "s") {
       e.preventDefault();
       exportFlattenedPDF();
     }
   });
 
-  // ----- Export (client-side, flattened) -----
   function dataUrlToU8(dataUrl) {
     const b64 = dataUrl.split(",")[1];
     const bin = atob(b64);
@@ -732,19 +581,14 @@
     const w = Math.floor(viewport.width);
     const h = Math.floor(viewport.height);
 
-    // Render PDF page to offscreen canvas
     const bg = document.createElement("canvas");
     bg.width = w; bg.height = h;
     const bgCtx = bg.getContext("2d", { alpha: false });
     bgCtx.setTransform(1,0,0,1,0,0);
     bgCtx.clearRect(0,0,w,h);
-
     await page.render({ canvasContext: bgCtx, viewport }).promise;
 
-    // Render overlay via Fabric StaticCanvas from saved JSON
     const overlay = new fabric.StaticCanvas(null, { width: w, height: h });
-    overlay.backgroundColor = "rgba(0,0,0,0)";
-
     const json = appState.pageStates[pageIndex];
     if (json) {
       await new Promise((resolve) => overlay.loadFromJSON(json, () => { overlay.renderAll(); resolve(); }));
@@ -752,10 +596,7 @@
       overlay.renderAll();
     }
 
-    // Composite overlay atop background
     bgCtx.drawImage(overlay.getElement(), 0, 0);
-
-    // Clean up
     overlay.dispose();
 
     return bg.toDataURL("image/png");
@@ -767,34 +608,26 @@
       return;
     }
 
-    // Ensure current page state is saved
     saveCurrentPageState();
-
     exportBtn.disabled = true;
-    statusEl.textContent = "Exporting… (rendering pages)";
+    statusEl.textContent = "Exporting…";
     toast("Exporting…");
 
     try {
-      const { PDFDocument } = PDFLib;
+      const { PDFDocument } = window.PDFLib;
 
-      // Load original PDF so we can preserve page sizes
       const original = await PDFDocument.load(appState.pdfBytes);
       const origPages = original.getPages();
-
       const out = await PDFDocument.create();
 
       for (let i = 0; i < appState.pageCount; i++) {
         statusEl.textContent = `Exporting… page ${i + 1} / ${appState.pageCount}`;
-        // Render to PNG at exportScale
         const pngDataUrl = await renderPageToPng(i, appState.exportScale);
         const pngBytes = dataUrlToU8(pngDataUrl);
-
         const img = await out.embedPng(pngBytes);
 
-        // Preserve original page size (points)
         const { width, height } = origPages[i].getSize();
         const page = out.addPage([width, height]);
-
         page.drawImage(img, { x: 0, y: 0, width, height });
       }
 
@@ -823,7 +656,7 @@
 
   exportBtn.addEventListener("click", exportFlattenedPDF);
 
-  // Start with tool = select
+  // Start tool
   setTool("select");
 })();
 </script>
