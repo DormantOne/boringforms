@@ -2,84 +2,56 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF Write-On (Drag box → see text live → drag to move)</title>
+  <title>PDF Write-On (drag box + live text + calibrate dot)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Same versions you said worked -->
+  <!-- Same libs/versions -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
   <style>
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background:#f5f5f7;
-      color:#111827;
-    }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:#f5f5f7; color:#111827; }
     header{
-      background:#111827;
-      color:#fff;
-      padding:10px 14px;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap:wrap;
-      position:sticky;
-      top:0;
-      z-index:20;
-    }
-    header .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:.4rem;
-      padding:.25rem .6rem;
-      border-radius:999px;
-      border:1px solid rgba(255,255,255,0.18);
-      background: rgba(255,255,255,0.06);
-      font-size:.82rem;
-      opacity:0.95;
-      white-space:nowrap;
+      position:sticky; top:0; z-index:50;
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      padding:10px 12px; background:#111827; color:#fff;
     }
     header input[type="file"]{ color:#e5e7eb; }
     header button{
-      border:none;
-      border-radius:8px;
-      padding:8px 10px;
-      font-size:.85rem;
-      font-weight:700;
-      cursor:pointer;
-      background:#2563eb;
-      color:#fff;
+      border:none; border-radius:10px; padding:8px 10px;
+      font-weight:800; font-size:.85rem; cursor:pointer;
+      background:#2563eb; color:#fff;
     }
     header button.secondary{ background:#374151; }
     header button.danger{ background:#dc2626; }
     header button:disabled{ opacity:.55; cursor:default; }
+    .pill{
+      display:inline-flex; align-items:center; gap:.45rem;
+      padding:.25rem .65rem; border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.06);
+      font-size:.82rem; white-space:nowrap;
+    }
 
-    .wrap{
-      display:flex;
-      gap:14px;
-      padding:14px;
-      align-items:flex-start;
-    }
-    @media (max-width: 980px){
-      .wrap{ flex-direction:column; }
-    }
+    .wrap{ display:flex; gap:12px; padding:12px; align-items:flex-start; }
+    @media (max-width: 980px){ .wrap{ flex-direction:column; } }
 
     .panel{
-      background:#fff;
-      border:1px solid #e5e7eb;
-      border-radius:12px;
-      box-shadow:0 1px 3px rgba(0,0,0,0.06);
+      background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+      box-shadow:0 1px 3px rgba(0,0,0,.06);
       padding:12px;
     }
 
     #pdfPanel{ flex:2; min-width:320px; }
+    #sidePanel{ flex:1; min-width:280px; max-width:420px; position:sticky; top:62px; }
+    @media (max-width: 980px){ #sidePanel{ position:static; max-width:none; } }
+
+    .hint{ font-size:.85rem; color:#6b7280; line-height:1.35; }
+
     #pdfStage{
-      position:relative;
-      display:inline-block;
+      position:relative; display:inline-block;
       max-width:100%;
-      border-radius:10px;
-      overflow:hidden;
+      border-radius:10px; overflow:hidden;
       border:1px solid #e5e7eb;
       background:#111827;
       touch-action:none;
@@ -90,90 +62,70 @@
       height:auto;
       background:#111827;
     }
-    #overlay{
-      position:absolute;
-      inset:0;
-      pointer-events:auto;
-    }
+    #overlay{ position:absolute; inset:0; }
 
-    /* Field box: color only (no labels) */
+    /* boxes (no labels) */
     .field-box{
-      position:absolute;
-      box-sizing:border-box;
-      border:2px solid rgba(56,189,248,0.95);
-      background: rgba(56,189,248,0.14);
+      position:absolute; box-sizing:border-box;
+      border:2px solid rgba(56,189,248,.95);
+      background: rgba(56,189,248,.14);
       border-radius:8px;
-      cursor:move; /* because you can drag it */
+      cursor:move;
       user-select:none;
     }
     .field-box.selected{
-      border-color: rgba(34,197,94,0.95) !important;
-      background: rgba(34,197,94,0.14) !important;
+      border-color: rgba(34,197,94,.95) !important;
+      background: rgba(34,197,94,.14) !important;
     }
 
-    /* ONE text layer only: light gray */
+    /* one text layer only: light gray */
     .field-text{
       position:absolute;
-      inset:2px;                 /* keep it tight = correct placement */
+      left:2px; top:2px; right:2px; bottom:2px;
       font-size:14px;
       line-height:1.12;
-      color: rgba(235,235,235,0.92); /* light gray */
+      color: rgba(235,235,235,0.92);
       white-space: pre-wrap;
       overflow:hidden;
       pointer-events:none;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.65); /* readable on busy forms */
+      text-shadow: 0 1px 2px rgba(0,0,0,0.65);
+      transform: translate(0px, 0px);
     }
 
-    /* While drawing new box: show it immediately */
+    /* temp drawing box */
     .temp-box{
       position:absolute;
       box-sizing:border-box;
-      border:2px dashed rgba(56,189,248,0.95);
-      background: rgba(56,189,248,0.10);
+      border:2px dashed rgba(56,189,248,.95);
+      background: rgba(56,189,248,.10);
       border-radius:8px;
       pointer-events:none;
     }
 
-    .page-controls{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-top:10px;
-      font-size:.88rem;
-      color:#111827;
+    /* calibration dot */
+    #calDot{
+      position:absolute;
+      width:12px; height:12px;
+      border-radius:999px;
+      background: rgba(255,255,255,0.92);
+      border:2px solid rgba(245,158,11,0.95);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+      transform: translate(-50%, -50%);
+      display:none;
+      cursor:grab;
+      z-index:100;
     }
-    .hint{
-      font-size:.85rem;
-      color:#6b7280;
-      line-height:1.35;
-    }
+    #calDot:active{ cursor:grabbing; }
 
-    #sidePanel{ flex:1; min-width:280px; max-width:420px; position:sticky; top:64px; }
-    @media (max-width: 980px){ #sidePanel{ position:static; max-width:none; } }
-
-    label{
-      display:block;
-      font-size:.82rem;
-      color:#374151;
-      margin:10px 0 6px;
-    }
+    label{ display:block; font-size:.82rem; color:#374151; margin:10px 0 6px; }
     input[type="text"], textarea{
-      width:100%;
-      box-sizing:border-box;
-      border:1px solid #d1d5db;
-      border-radius:8px;
-      padding:8px 10px;
-      font-size:.9rem;
-      background:#fff;
+      width:100%; box-sizing:border-box;
+      border:1px solid #d1d5db; border-radius:10px;
+      padding:8px 10px; font-size:.92rem;
     }
-    textarea{ min-height:130px; resize:vertical; }
-
-    .row{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-top:10px;
-    }
+    textarea{ min-height:140px; resize:vertical; }
+    .row{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .row button{ padding:8px 10px; border-radius:10px; font-weight:800; }
 
     .field-list{
       margin-top:12px;
@@ -190,113 +142,97 @@
       background:#fff;
       cursor:pointer;
     }
-    .field-item.selected{
-      border-color:#2563eb;
-      background:#eff6ff;
-    }
-    .field-item .top{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-    }
-    .swatch{
-      width:10px; height:10px; border-radius:999px;
-      border:1px solid rgba(0,0,0,0.15);
-      display:inline-block;
-      margin-right:6px;
-      vertical-align:middle;
-    }
-    .field-item b{ font-size:.9rem; }
-    .field-item small{
-      color:#6b7280;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-    }
+    .field-item.selected{ border-color:#2563eb; background:#eff6ff; }
+    .field-item .top{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+    .swatch{ width:10px; height:10px; border-radius:999px; border:1px solid rgba(0,0,0,.15); display:inline-block; margin-right:6px; vertical-align:middle; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; color:#6b7280; font-size:.78rem; }
   </style>
 </head>
 
 <body>
-  <header>
-    <input id="pdfFile" type="file" accept="application/pdf" />
-    <button id="downloadPdf" class="secondary" disabled>Download filled PDF</button>
+<header>
+  <input id="pdfFile" type="file" accept="application/pdf" />
+  <button id="downloadPdf" class="secondary" disabled>Download filled PDF</button>
 
-    <span class="pill">Drag to draw box • Click box • Type (shows live)</span>
-    <span class="pill" id="pdfNamePill">PDF: (none)</span>
-    <span class="pill">Page <span id="pageNum">–</span> / <span id="pageCount">–</span></span>
+  <button id="toggleCal" class="secondary" disabled title="Show a dot you can drag to calibrate where text starts. Requires a selected field.">Calibrate dot</button>
+  <button id="resetCal" class="secondary" disabled title="Reset calibration offset to 0,0">Reset</button>
 
-    <button id="prevBtn" class="secondary" disabled>Prev</button>
-    <button id="nextBtn" class="secondary" disabled>Next</button>
-  </header>
+  <span class="pill" id="pdfPill">PDF: (none)</span>
+  <span class="pill">Page <span id="pageNum">–</span> / <span id="pageCount">–</span></span>
+  <span class="pill" id="offsetPill">Offset: (0, 0)</span>
 
-  <div class="wrap">
-    <div id="pdfPanel" class="panel">
-      <div class="hint" style="margin-bottom:10px;">
-        Draw a field by dragging on empty space. Drag an existing box to move it. Press <b>Delete</b> to remove selected box.
-      </div>
+  <button id="prevBtn" class="secondary" disabled>Prev</button>
+  <button id="nextBtn" class="secondary" disabled>Next</button>
+</header>
 
-      <div id="pdfStage">
-        <canvas id="pdfCanvas"></canvas>
-        <div id="overlay"></div>
-      </div>
-
-      <div class="page-controls">
-        <div class="hint">No labels on boxes (clean). Hover shows label.</div>
-        <div class="hint">Download flattens your typed text into the PDF.</div>
-      </div>
+<div class="wrap">
+  <div id="pdfPanel" class="panel">
+    <div class="hint" style="margin-bottom:10px;">
+      Drag on empty space to create a box. Drag a box to move it. Click a box, then type on the right (text appears live on the PDF).
+      Use <b>Calibrate dot</b> if the text start point needs a global nudge.
     </div>
 
-    <div id="sidePanel" class="panel">
-      <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
-        <h3 style="margin:0; font-size:1rem;">Selected Field</h3>
-        <small id="selId" style="color:#6b7280;">(none)</small>
-      </div>
-
-      <div id="noSel" class="hint" style="margin-top:8px;">
-        Nothing selected. Draw a box or click a box.
-      </div>
-
-      <div id="selUI" style="display:none;">
-        <label>Label (only shown here; boxes stay clean)</label>
-        <input id="labelInput" type="text" placeholder="e.g., Patient name" />
-
-        <label>Value (shows live ON the PDF)</label>
-        <textarea id="valueInput" placeholder="Type here…"></textarea>
-
-        <div class="row">
-          <button id="deleteBtn" class="danger">Delete field</button>
-          <button id="clearBtn" class="secondary">Clear text</button>
-        </div>
-      </div>
-
-      <div class="field-list">
-        <div style="display:flex; justify-content:space-between; align-items:baseline;">
-          <h3 style="margin:0; font-size:.95rem;">Fields on this page</h3>
-          <small class="hint" id="fieldCountText">0</small>
-        </div>
-        <div id="fieldList" style="margin-top:8px;"></div>
-      </div>
+    <div id="pdfStage">
+      <canvas id="pdfCanvas"></canvas>
+      <div id="overlay"></div>
+      <div id="calDot" title="Drag to set text start offset"></div>
     </div>
   </div>
+
+  <div id="sidePanel" class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:10px;">
+      <h3 style="margin:0; font-size:1rem;">Selected Field</h3>
+      <small id="selId" class="mono">(none)</small>
+    </div>
+
+    <div id="noSel" class="hint" style="margin-top:8px;">
+      Nothing selected. Draw a box or click a box.
+    </div>
+
+    <div id="selUI" style="display:none;">
+      <label>Label (only here; boxes stay clean)</label>
+      <input id="labelInput" type="text" placeholder="e.g., Patient name" />
+
+      <label>Value (shows live ON the PDF)</label>
+      <textarea id="valueInput" placeholder="Type here…"></textarea>
+
+      <div class="row">
+        <button id="deleteBtn" class="danger">Delete field</button>
+        <button id="clearBtn" class="secondary">Clear text</button>
+      </div>
+    </div>
+
+    <div class="field-list">
+      <div style="display:flex; justify-content:space-between; align-items:baseline;">
+        <h3 style="margin:0; font-size:.95rem;">Fields on this page</h3>
+        <small class="mono" id="fieldCountText">0</small>
+      </div>
+      <div id="fieldList" style="margin-top:8px;"></div>
+    </div>
+  </div>
+</div>
 
 <script>
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js";
 
-  const COLOR_PALETTE = [
-    "#dc2626","#eab308","#f97316","#2563eb","#16a34a","#9333ea","#06b6d4","#f43f5e"
-  ];
+  const COLOR_PALETTE = ["#dc2626","#eab308","#f97316","#2563eb","#16a34a","#9333ea","#06b6d4","#f43f5e"];
 
   const elPdfFile = document.getElementById("pdfFile");
   const elDownloadPdf = document.getElementById("downloadPdf");
+  const elToggleCal = document.getElementById("toggleCal");
+  const elResetCal = document.getElementById("resetCal");
   const elPrev = document.getElementById("prevBtn");
   const elNext = document.getElementById("nextBtn");
   const elPageNum = document.getElementById("pageNum");
   const elPageCount = document.getElementById("pageCount");
-  const elPdfNamePill = document.getElementById("pdfNamePill");
+  const elPdfPill = document.getElementById("pdfPill");
+  const elOffsetPill = document.getElementById("offsetPill");
 
   const pdfCanvas = document.getElementById("pdfCanvas");
   const ctx = pdfCanvas.getContext("2d");
   const overlay = document.getElementById("overlay");
+  const calDot = document.getElementById("calDot");
 
   const selIdEl = document.getElementById("selId");
   const noSelEl = document.getElementById("noSel");
@@ -309,30 +245,38 @@
   const fieldListEl = document.getElementById("fieldList");
   const fieldCountText = document.getElementById("fieldCountText");
 
-  let pdfDoc = null;
-  let originalPdfBytes = null;
+  let pdfDoc = null;                 // pdf.js doc
+  let originalPdfBytes = null;       // ArrayBuffer
   let loadedPdfName = "";
   let currentPageNumber = 1;
   let scale = 1.25;
 
+  // mapping: normalized to overlay (0..1, from top-left)
   const mapping = { pages: [] };
   const fieldValues = {};
   let selectedFieldId = null;
   let colorById = Object.create(null);
 
+  // GLOBAL calibration offset in NORMALIZED units (so it survives resizing):
+  // This is applied to where text starts inside every box.
+  let textOffsetN = { dx: 0, dy: 0 };  // normalized (fraction of page)
+  let calibrateMode = false;
+
+  // ---------- helpers ----------
   function clamp01(n){ return Math.max(0, Math.min(1, n)); }
   function hexToRgba(hex, a){
     const h = String(hex||"").replace("#","");
     if (h.length !== 6) return `rgba(255,255,255,${a})`;
-    const r = parseInt(h.slice(0,2),16);
-    const g = parseInt(h.slice(2,4),16);
-    const b = parseInt(h.slice(4,6),16);
+    const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
     return `rgba(${r},${g},${b},${a})`;
   }
   function escapeHtml(s){
     return String(s||"")
       .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
       .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+  function safeBaseName(s){
+    return (s || "filled_form").replace(/\.pdf$/i,"").replace(/[^\w\-]+/g,"_").slice(0,80) || "filled_form";
   }
 
   function getOrCreatePage(pageNumber){
@@ -367,6 +311,16 @@
   }
   function colorForId(id){ return colorById[id] || COLOR_PALETTE[0]; }
 
+  function getTextOffsetPx(){
+    const w = overlay.clientWidth || 1;
+    const h = overlay.clientHeight || 1;
+    return { dx: textOffsetN.dx * w, dy: textOffsetN.dy * h };
+  }
+  function updateOffsetPill(){
+    const p = getTextOffsetPx();
+    elOffsetPill.textContent = `Offset: (${Math.round(p.dx)}, ${Math.round(p.dy)})`;
+  }
+
   function setSelected(fieldId){
     selectedFieldId = fieldId || null;
 
@@ -389,6 +343,9 @@
     fieldListEl.querySelectorAll(".field-item").forEach(item=>{
       item.classList.toggle("selected", item.dataset.id === selectedFieldId);
     });
+
+    // calibration dot needs a selected field
+    if (calibrateMode) positionCalDot();
   }
 
   function removeField(fieldId){
@@ -406,6 +363,7 @@
     renderFieldList();
   }
 
+  // ---------- PDF render ----------
   async function renderPage(num){
     if (!pdfDoc) return;
     const page = await pdfDoc.getPage(num);
@@ -423,14 +381,17 @@
 
     renderFieldBoxes();
     renderFieldList();
+    updateOffsetPill();
+    if (calibrateMode) positionCalDot();
   }
 
-  // ====== Draw boxes + text ======
+  // ---------- UI render ----------
   function renderFieldBoxes(){
-    overlay.innerHTML = "";
+    overlay.innerHTML = ""; // dot is separate element, not inside overlay
 
     const pageObj = mapping.pages.find(p => p.pageNumber === currentPageNumber);
     const fields = pageObj?.fields || [];
+    const off = getTextOffsetPx();
 
     for (const f of fields){
       const box = document.createElement("div");
@@ -451,10 +412,11 @@
       const text = document.createElement("div");
       text.className = "field-text";
       text.textContent = (fieldValues[f.id] || "");
+      text.style.transform = `translate(${off.dx}px, ${off.dy}px)`; // <-- calibrated nudge
       box.appendChild(text);
 
-      // Click selects; drag moves (pointer events)
       box.addEventListener("pointerdown", startDragMoveBox);
+      box.addEventListener("click", (ev)=>{ ev.stopPropagation(); setSelected(f.id); });
 
       overlay.appendChild(box);
     }
@@ -483,11 +445,8 @@
       const label = f.label || "(no label)";
       item.innerHTML = `
         <div class="top">
-          <div>
-            <span class="swatch" style="background:${col}"></span>
-            <b>${escapeHtml(label)}</b>
-          </div>
-          <small>${escapeHtml(f.id)}</small>
+          <div><span class="swatch" style="background:${col}"></span><b>${escapeHtml(label)}</b></div>
+          <span class="mono">${escapeHtml(f.id)}</span>
         </div>
       `;
       item.addEventListener("click", ()=>{
@@ -499,7 +458,7 @@
     }
   }
 
-  // ====== Create new box by dragging on EMPTY space ======
+  // ---------- Create new box (drag on empty) ----------
   let drawing = false;
   let startPt = null;
   let tempBox = null;
@@ -508,8 +467,8 @@
 
   overlay.addEventListener("pointerdown", (e)=>{
     if (!pdfDoc) return;
+    if (calibrateMode) return; // keep calibration simple: disable drawing while calibrating
 
-    // If the user clicked a box, the box handler stops propagation.
     setSelected(null);
 
     const r = overlayRect();
@@ -547,10 +506,9 @@
     tempBox.style.height = (h * 100) + "%";
   });
 
-  overlay.addEventListener("pointerup", (e)=>{
+  overlay.addEventListener("pointerup", ()=>{
     if (!drawing) return;
     drawing = false;
-
     if (!tempBox || !startPt) return;
 
     const left = parseFloat(tempBox.style.left) / 100;
@@ -565,7 +523,6 @@
 
     const pageObj = getCurrentPageObj();
     const newId = `field_${currentPageNumber}_${pageObj.fields.length + 1}`;
-
     pageObj.fields.push({ id:newId, label:"", x:left, y:top, width, height });
     fieldValues[newId] = "";
 
@@ -575,16 +532,16 @@
     renderFieldList();
   });
 
-  // ====== Drag existing box to MOVE it ======
-  let dragMove = null; // { id, startClientX, startClientY, startX, startY, width, height, rect }
+  // ---------- Drag existing box to move ----------
+  let dragMove = null; // { id, startClientX, startClientY, startX, startY, w, h, rect }
 
   function startDragMoveBox(ev){
-    ev.stopPropagation(); // do not start drawing a new box
+    if (calibrateMode) return;
+    ev.stopPropagation();
     const id = ev.currentTarget.dataset.id;
     if (!id) return;
 
     setSelected(id);
-
     const res = getFieldById(id);
     if (!res) return;
 
@@ -614,52 +571,50 @@
     const dx = (ev.clientX - dragMove.startClientX) / dragMove.rect.width;
     const dy = (ev.clientY - dragMove.startClientY) / dragMove.rect.height;
 
-    // clamp so box stays on page
     const newX = clamp01(dragMove.startX + dx);
     const newY = clamp01(dragMove.startY + dy);
+
     res.field.x = Math.max(0, Math.min(1 - dragMove.w, newX));
     res.field.y = Math.max(0, Math.min(1 - dragMove.h, newY));
 
-    // update element directly (smooth)
     const boxEl = overlay.querySelector(`.field-box[data-id="${CSS.escape(dragMove.id)}"]`);
     if (boxEl){
       boxEl.style.left = (res.field.x * 100) + "%";
       boxEl.style.top  = (res.field.y * 100) + "%";
     }
+    if (calibrateMode) positionCalDot();
   }
 
   function endDragMoveBox(ev){
     const boxEl = ev.currentTarget;
     boxEl.removeEventListener("pointermove", onDragMoveBox);
     dragMove = null;
-    renderFieldList(); // update selection UI list (optional)
+    renderFieldList();
   }
 
-  // ====== Side panel: live updates ON the PDF ======
+  // ---------- Side panel: live updates ----------
   labelInput.addEventListener("input", ()=>{
     if (!selectedFieldId) return;
     const res = getFieldById(selectedFieldId);
     if (!res) return;
     res.field.label = labelInput.value;
-
     const box = overlay.querySelector(`.field-box[data-id="${CSS.escape(selectedFieldId)}"]`);
     if (box) box.title = res.field.label || res.field.id;
-
     renderFieldList();
   });
 
   valueInput.addEventListener("input", ()=>{
     if (!selectedFieldId) return;
     fieldValues[selectedFieldId] = valueInput.value;
-
     const box = overlay.querySelector(`.field-box[data-id="${CSS.escape(selectedFieldId)}"]`);
     const text = box?.querySelector(".field-text");
-    if (text) text.textContent = valueInput.value; // live on PDF
+    if (text) text.textContent = valueInput.value;
   });
 
   deleteBtn.addEventListener("click", ()=>{
     if (!selectedFieldId) return;
     removeField(selectedFieldId);
+    if (calibrateMode) hideCalDot();
   });
 
   clearBtn.addEventListener("click", ()=>{
@@ -671,7 +626,13 @@
     if (text) text.textContent = "";
   });
 
-  // Keyboard delete (when not typing)
+  // click empty overlay clears selection (unless calibrating)
+  overlay.addEventListener("click", ()=>{
+    if (calibrateMode) return;
+    setSelected(null);
+  });
+
+  // keyboard delete (when not typing)
   document.addEventListener("keydown", (e)=>{
     const tag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : "";
     const typing = (tag === "input" || tag === "textarea");
@@ -679,14 +640,19 @@
     if ((e.key === "Delete" || e.key === "Backspace") && selectedFieldId){
       e.preventDefault();
       removeField(selectedFieldId);
+      if (calibrateMode) hideCalDot();
+    }
+    if (e.key === "Escape" && calibrateMode){
+      toggleCalibrate(false);
     }
   });
 
-  // Page nav
+  // ---------- Page nav ----------
   elPrev.addEventListener("click", async ()=>{
     if (!pdfDoc || currentPageNumber <= 1) return;
     currentPageNumber--;
     setSelected(null);
+    hideCalDot();
     await renderPage(currentPageNumber);
   });
 
@@ -694,16 +660,17 @@
     if (!pdfDoc || currentPageNumber >= pdfDoc.numPages) return;
     currentPageNumber++;
     setSelected(null);
+    hideCalDot();
     await renderPage(currentPageNumber);
   });
 
-  // Load PDF
+  // ---------- Load PDF ----------
   elPdfFile.addEventListener("change", (e)=>{
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
     loadedPdfName = file.name;
-    elPdfNamePill.textContent = "PDF: " + loadedPdfName;
+    elPdfPill.textContent = "PDF: " + loadedPdfName;
 
     const reader = new FileReader();
     reader.onload = async (ev)=>{
@@ -713,31 +680,153 @@
       pdfDoc = await pdfjsLib.getDocument({ data: typedarray }).promise;
       currentPageNumber = 1;
 
-      // reset (keep simple)
+      // reset (keep it simple)
       mapping.pages = [];
       for (const k of Object.keys(fieldValues)) delete fieldValues[k];
       selectedFieldId = null;
 
-      rebuildColorMap();
-      elDownloadPdf.disabled = false;
-      elPageCount.textContent = String(pdfDoc.numPages);
+      textOffsetN = { dx: 0, dy: 0 };
+      calibrateMode = false;
+      hideCalDot();
+      updateOffsetPill();
 
+      rebuildColorMap();
+
+      elDownloadPdf.disabled = false;
+      elToggleCal.disabled = false;
+      elResetCal.disabled = false;
+
+      elPageCount.textContent = String(pdfDoc.numPages);
       await renderPage(currentPageNumber);
     };
     reader.readAsArrayBuffer(file);
   });
 
-  // ====== Export: flatten into PDF ======
-  function safeBaseName(s){
-    return (s || "filled_form").replace(/\.pdf$/i,"").replace(/[^\w\-]+/g,"_").slice(0,80) || "filled_form";
+  // ---------- Calibration dot ----------
+  function hideCalDot(){
+    calDot.style.display = "none";
   }
 
+  function positionCalDot(){
+    if (!calibrateMode) { hideCalDot(); return; }
+    if (!selectedFieldId) { hideCalDot(); return; }
+
+    const res = getFieldById(selectedFieldId);
+    if (!res) { hideCalDot(); return; }
+
+    const w = overlay.clientWidth || 1;
+    const h = overlay.clientHeight || 1;
+    const marginPx = 2;
+
+    // "text origin" inside the selected box (top-left + margin), plus current offset
+    const originX = res.field.x * w + marginPx;
+    const originY = res.field.y * h + marginPx;
+
+    const off = getTextOffsetPx();
+    const dotX = originX + off.dx;
+    const dotY = originY + off.dy;
+
+    calDot.style.left = dotX + "px";
+    calDot.style.top = dotY + "px";
+    calDot.style.display = "block";
+  }
+
+  function applyTextOffsetEverywhere(){
+    const off = getTextOffsetPx();
+    overlay.querySelectorAll(".field-text").forEach(t=>{
+      t.style.transform = `translate(${off.dx}px, ${off.dy}px)`;
+    });
+    updateOffsetPill();
+    if (calibrateMode) positionCalDot();
+  }
+
+  function toggleCalibrate(force){
+    const newState = (typeof force === "boolean") ? force : !calibrateMode;
+
+    if (newState){
+      if (!selectedFieldId){
+        alert("Select a field first, then turn on Calibrate dot.");
+        return;
+      }
+      calibrateMode = true;
+      calDot.style.display = "block";
+      positionCalDot();
+    } else {
+      calibrateMode = false;
+      hideCalDot();
+    }
+    // drawing boxes is disabled while calibrating (keeps it clean)
+  }
+
+  elToggleCal.addEventListener("click", ()=> toggleCalibrate());
+
+  elResetCal.addEventListener("click", ()=>{
+    textOffsetN = { dx: 0, dy: 0 };
+    applyTextOffsetEverywhere();
+  });
+
+  // drag dot to set offset
+  let dotDrag = null; // { startClientX, startClientY, startDxN, startDyN, originX, originY, w, h }
+
+  calDot.addEventListener("pointerdown", (e)=>{
+    if (!calibrateMode || !selectedFieldId) return;
+
+    const res = getFieldById(selectedFieldId);
+    if (!res) return;
+
+    const w = overlay.clientWidth || 1;
+    const h = overlay.clientHeight || 1;
+    const marginPx = 2;
+
+    const originX = res.field.x * w + marginPx;
+    const originY = res.field.y * h + marginPx;
+
+    dotDrag = {
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      startDxN: textOffsetN.dx,
+      startDyN: textOffsetN.dy,
+      originX,
+      originY,
+      w, h
+    };
+
+    calDot.setPointerCapture(e.pointerId);
+    calDot.addEventListener("pointermove", onDotMove);
+    calDot.addEventListener("pointerup", onDotUp, { once:true });
+    calDot.addEventListener("pointercancel", onDotUp, { once:true });
+  });
+
+  function onDotMove(e){
+    if (!dotDrag) return;
+
+    // compute new dot position in px from drag delta
+    const dxPx = (e.clientX - dotDrag.startClientX);
+    const dyPx = (e.clientY - dotDrag.startClientY);
+
+    // convert px delta to normalized delta
+    const dxN = dxPx / (dotDrag.w || 1);
+    const dyN = dyPx / (dotDrag.h || 1);
+
+    textOffsetN = {
+      dx: dotDrag.startDxN + dxN,
+      dy: dotDrag.startDyN + dyN
+    };
+
+    applyTextOffsetEverywhere();
+  }
+
+  function onDotUp(e){
+    calDot.removeEventListener("pointermove", onDotMove);
+    dotDrag = null;
+  }
+
+  // ---------- Export to PDF (FIXED mapping via pdf.js viewport.convertToPdfPoint) ----------
   function wrapText(font, text, size, maxWidth){
     const words = String(text||"").replace(/\r/g,"").split(/\s+/).filter(Boolean);
     if (!words.length) return [];
     const lines = [];
     let line = words[0];
-
     for (let i=1;i<words.length;i++){
       const test = line + " " + words[i];
       const w = font.widthOfTextAtSize(test, size);
@@ -750,49 +839,76 @@
 
   async function downloadFilledPdf(){
     if (!originalPdfBytes || !pdfDoc) { alert("Load a PDF first."); return; }
+    if (typeof PDFLib === "undefined") { alert("pdf-lib did not load."); return; }
 
     const { PDFDocument, StandardFonts, rgb } = PDFLib;
-    const pdf = await PDFDocument.load(originalPdfBytes);
-    const pages = pdf.getPages();
-    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const out = await PDFDocument.load(originalPdfBytes);
+    const outPages = out.getPages();
+    const font = await out.embedFont(StandardFonts.Helvetica);
 
+    // For each mapped page, use pdf.js viewport conversion at scale=1 for correct PDF-space mapping
     for (const pageMapping of mapping.pages){
       const pageIndex = pageMapping.pageNumber - 1;
-      if (pageIndex < 0 || pageIndex >= pages.length) continue;
+      if (pageIndex < 0 || pageIndex >= outPages.length) continue;
 
-      const page = pages[pageIndex];
-      const { width, height } = page.getSize();
+      const outPage = outPages[pageIndex];
+
+      // pdf.js page + viewport
+      const jsPage = await pdfDoc.getPage(pageMapping.pageNumber);
+      const vp = jsPage.getViewport({ scale: 1 });
+
+      // Convert calibration offset (normalized) into PDF points using convertToPdfPoint deltas
+      const dxPx1 = textOffsetN.dx * vp.width;
+      const dyPx1 = textOffsetN.dy * vp.height;
+      const p0 = vp.convertToPdfPoint(0, 0);
+      const p1 = vp.convertToPdfPoint(dxPx1, dyPx1);
+      const dxPt = p1[0] - p0[0];
+      const dyPt = p1[1] - p0[1];
 
       for (const f of (pageMapping.fields||[])){
-        const val = (fieldValues[f.id] || "").trim();
-        if (!val) continue;
+        const value = String(fieldValues[f.id] || "");
+        if (!value.trim()) continue;
 
-        const boxX = f.x * width;
-        const boxYFromTop = f.y * height;
-        const boxW = f.width * width;
-        const boxH = f.height * height;
+        // Box corners in viewport pixels at scale=1
+        const leftPx = f.x * vp.width;
+        const topPx  = f.y * vp.height;
+        const wPx    = f.width * vp.width;
+        const hPx    = f.height * vp.height;
+
+        // Convert to PDF points (accounts for cropbox/rotation)
+        const tl = vp.convertToPdfPoint(leftPx, topPx);
+        const br = vp.convertToPdfPoint(leftPx + wPx, topPx + hPx);
+
+        const boxX = Math.min(tl[0], br[0]);
+        const boxY = Math.min(tl[1], br[1]);
+        const boxW = Math.abs(br[0] - tl[0]);
+        const boxH = Math.abs(br[1] - tl[1]);
 
         const margin = 2;
         const fontSize = 11;
         const lineGap = 2;
-
         const maxW = Math.max(10, boxW - margin*2);
-        const paragraphs = String(fieldValues[f.id] || "").replace(/\r/g,"").split("\n");
 
+        // wrap paragraphs
+        const paras = value.replace(/\r/g,"").split("\n");
         let lines = [];
-        for (const para of paragraphs){
-          if (!para.trim()){ lines.push(""); continue; }
+        for (const para of paras){
+          if (!para.trim()) { lines.push(""); continue; }
           lines.push(...wrapText(font, para, fontSize, maxW));
         }
 
-        const topY = height - boxYFromTop - margin;
+        // Place text from top-left of box (PDF coords are bottom-left), plus calibration offset in PDF points
+        const textX = boxX + margin + dxPt;
+        const topY = boxY + boxH - margin + dyPt;
         let y = topY - fontSize;
-        const minY = height - (boxYFromTop + boxH) + margin;
+
+        // bottom guard (stays inside box)
+        const bottomLimit = boxY + margin + dyPt;
 
         for (const line of lines){
-          if (y < minY) break;
-          page.drawText(line, {
-            x: boxX + margin,
+          if (y < bottomLimit) break;
+          outPage.drawText(line, {
+            x: textX,
             y,
             size: fontSize,
             font,
@@ -804,8 +920,8 @@
       }
     }
 
-    const outBytes = await pdf.save();
-    const blob = new Blob([outBytes], { type:"application/pdf" });
+    const bytes = await out.save();
+    const blob = new Blob([bytes], { type:"application/pdf" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
@@ -823,6 +939,28 @@
       alert("Failed to generate PDF. See console.");
     });
   });
+
+  // enable/disable cal button based on selection
+  function refreshCalButtons(){
+    elToggleCal.disabled = !pdfDoc;
+    elResetCal.disabled = !pdfDoc;
+  }
+  refreshCalButtons();
+
+  // keep dot positioned correctly on resize
+  window.addEventListener("resize", ()=>{
+    applyTextOffsetEverywhere();
+  });
+
+  // when selection changes, keep cal dot correct
+  const _setSelected = setSelected;
+  setSelected = function(fieldId){
+    _setSelected(fieldId);
+    if (calibrateMode) positionCalDot();
+  };
+
+  // initial pill
+  updateOffsetPill();
 </script>
 </body>
 </html>
