@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PDF Write-On (Draw Box → Type On PDF)</title>
+  <title>PDF Write-On (Drag box → see text live → drag to move)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Use the SAME versions that worked for you -->
+  <!-- Same versions you said worked -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
@@ -16,7 +16,6 @@
       background:#f5f5f7;
       color:#111827;
     }
-
     header{
       background:#111827;
       color:#fff;
@@ -74,7 +73,6 @@
       padding:12px;
     }
 
-    /* LEFT: PDF */
     #pdfPanel{ flex:2; min-width:320px; }
     #pdfStage{
       position:relative;
@@ -84,7 +82,7 @@
       overflow:hidden;
       border:1px solid #e5e7eb;
       background:#111827;
-      touch-action:none; /* allows pointer drawing on touch */
+      touch-action:none;
     }
     #pdfCanvas{
       display:block;
@@ -98,69 +96,44 @@
       pointer-events:auto;
     }
 
-    /* Field box: NO LABELS. Color only. */
+    /* Field box: color only (no labels) */
     .field-box{
       position:absolute;
       box-sizing:border-box;
       border:2px solid rgba(56,189,248,0.95);
-      background: rgba(56,189,248,0.16);
+      background: rgba(56,189,248,0.14);
       border-radius:8px;
-      cursor:pointer;
+      cursor:move; /* because you can drag it */
       user-select:none;
     }
     .field-box.selected{
       border-color: rgba(34,197,94,0.95) !important;
-      background: rgba(34,197,94,0.16) !important;
+      background: rgba(34,197,94,0.14) !important;
     }
 
-    /* MUST SEE TEXT on the PDF: black text with strong white outline */
+    /* ONE text layer only: light gray */
     .field-text{
       position:absolute;
-      inset:4px;
+      inset:2px;                 /* keep it tight = correct placement */
       font-size:14px;
       line-height:1.12;
-      color: rgba(0,0,0,0.88);
+      color: rgba(235,235,235,0.92); /* light gray */
       white-space: pre-wrap;
       overflow:hidden;
       pointer-events:none;
-      text-shadow:
-        -1px -1px 0 rgba(255,255,255,0.96),
-         1px -1px 0 rgba(255,255,255,0.96),
-        -1px  1px 0 rgba(255,255,255,0.96),
-         1px  1px 0 rgba(255,255,255,0.96),
-         0px  0px 4px rgba(255,255,255,0.95);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.65); /* readable on busy forms */
     }
 
-    /* Inline editor shown only when selected */
-    .field-editor{
-      position:absolute;
-      inset:2px;
-      width:calc(100% - 4px);
-      height:calc(100% - 4px);
-      box-sizing:border-box;
-      border:none;
-      outline:none;
-      resize:none;
-      background: rgba(255,255,255,0.35);
-      color:#0b1120;
-      font-size:14px;
-      line-height:1.12;
-      padding:6px;
-      border-radius:6px;
-      display:none;
-    }
-    .field-box.selected .field-editor{ display:block; }
-
-    /* Drawing marquee */
+    /* While drawing new box: show it immediately */
     .temp-box{
       position:absolute;
-      border:2px dashed rgba(255,255,255,0.85);
-      background: rgba(255,255,255,0.08);
+      box-sizing:border-box;
+      border:2px dashed rgba(56,189,248,0.95);
+      background: rgba(56,189,248,0.10);
       border-radius:8px;
       pointer-events:none;
     }
 
-    /* Page controls */
     .page-controls{
       display:flex;
       justify-content:space-between;
@@ -169,11 +142,12 @@
       font-size:.88rem;
       color:#111827;
     }
-    .page-controls .left{
-      display:flex; gap:8px; align-items:center;
+    .hint{
+      font-size:.85rem;
+      color:#6b7280;
+      line-height:1.35;
     }
 
-    /* RIGHT: Selected field */
     #sidePanel{ flex:1; min-width:280px; max-width:420px; position:sticky; top:64px; }
     @media (max-width: 980px){ #sidePanel{ position:static; max-width:none; } }
 
@@ -201,13 +175,6 @@
       margin-top:10px;
     }
 
-    .hint{
-      font-size:.85rem;
-      color:#6b7280;
-      line-height:1.35;
-    }
-
-    /* Field list */
     .field-list{
       margin-top:12px;
       border-top:1px solid #e5e7eb;
@@ -241,7 +208,10 @@
       vertical-align:middle;
     }
     .field-item b{ font-size:.9rem; }
-    .field-item small{ color:#6b7280; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    .field-item small{
+      color:#6b7280;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    }
   </style>
 </head>
 
@@ -250,13 +220,9 @@
     <input id="pdfFile" type="file" accept="application/pdf" />
     <button id="downloadPdf" class="secondary" disabled>Download filled PDF</button>
 
-    <span class="pill">Draw a box → click it → type (text shows on PDF)</span>
-
+    <span class="pill">Drag to draw box • Click box • Type (shows live)</span>
     <span class="pill" id="pdfNamePill">PDF: (none)</span>
-
-    <span class="pill">
-      Page <span id="pageNum">–</span> / <span id="pageCount">–</span>
-    </span>
+    <span class="pill">Page <span id="pageNum">–</span> / <span id="pageCount">–</span></span>
 
     <button id="prevBtn" class="secondary" disabled>Prev</button>
     <button id="nextBtn" class="secondary" disabled>Next</button>
@@ -265,7 +231,7 @@
   <div class="wrap">
     <div id="pdfPanel" class="panel">
       <div class="hint" style="margin-bottom:10px;">
-        Drag on the PDF to create a field. <b>No labels</b> on boxes—only color. Click a box to see/edit its label in the right panel.
+        Draw a field by dragging on empty space. Drag an existing box to move it. Press <b>Delete</b> to remove selected box.
       </div>
 
       <div id="pdfStage">
@@ -274,12 +240,8 @@
       </div>
 
       <div class="page-controls">
-        <div class="left hint">
-          Tip: press <b>Delete</b> to remove selected box.
-        </div>
-        <div class="hint">
-          Boxes are just UI. Download flattens the text into the PDF.
-        </div>
+        <div class="hint">No labels on boxes (clean). Hover shows label.</div>
+        <div class="hint">Download flattens your typed text into the PDF.</div>
       </div>
     </div>
 
@@ -297,16 +259,12 @@
         <label>Label (only shown here; boxes stay clean)</label>
         <input id="labelInput" type="text" placeholder="e.g., Patient name" />
 
-        <label>Value (this shows live ON the PDF)</label>
+        <label>Value (shows live ON the PDF)</label>
         <textarea id="valueInput" placeholder="Type here…"></textarea>
 
         <div class="row">
           <button id="deleteBtn" class="danger">Delete field</button>
           <button id="clearBtn" class="secondary">Clear text</button>
-        </div>
-
-        <div class="hint" style="margin-top:10px;">
-          You can also type directly inside the selected box on the PDF (it opens an inline editor).
         </div>
       </div>
 
@@ -321,20 +279,11 @@
   </div>
 
 <script>
-  // pdf.js worker (same version)
   pdfjsLib.GlobalWorkerOptions.workerSrc =
     "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js";
 
-  // Color cycle (same vibe as your working code)
   const COLOR_PALETTE = [
-    "#dc2626", // red
-    "#eab308", // yellow
-    "#f97316", // orange
-    "#2563eb", // blue
-    "#16a34a", // green
-    "#9333ea", // purple
-    "#06b6d4", // cyan
-    "#f43f5e"  // pink
+    "#dc2626","#eab308","#f97316","#2563eb","#16a34a","#9333ea","#06b6d4","#f43f5e"
   ];
 
   const elPdfFile = document.getElementById("pdfFile");
@@ -348,7 +297,6 @@
   const pdfCanvas = document.getElementById("pdfCanvas");
   const ctx = pdfCanvas.getContext("2d");
   const overlay = document.getElementById("overlay");
-  const pdfStage = document.getElementById("pdfStage");
 
   const selIdEl = document.getElementById("selId");
   const noSelEl = document.getElementById("noSel");
@@ -361,19 +309,26 @@
   const fieldListEl = document.getElementById("fieldList");
   const fieldCountText = document.getElementById("fieldCountText");
 
-  // State
   let pdfDoc = null;
   let originalPdfBytes = null;
   let loadedPdfName = "";
   let currentPageNumber = 1;
   let scale = 1.25;
 
-  // mapping: pages -> fields with normalized coords (0..1) relative to overlay DOM size
   const mapping = { pages: [] };
-  const fieldValues = {}; // id -> string
+  const fieldValues = {};
   let selectedFieldId = null;
   let colorById = Object.create(null);
 
+  function clamp01(n){ return Math.max(0, Math.min(1, n)); }
+  function hexToRgba(hex, a){
+    const h = String(hex||"").replace("#","");
+    if (h.length !== 6) return `rgba(255,255,255,${a})`;
+    const r = parseInt(h.slice(0,2),16);
+    const g = parseInt(h.slice(2,4),16);
+    const b = parseInt(h.slice(4,6),16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
   function escapeHtml(s){
     return String(s||"")
       .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
@@ -391,6 +346,14 @@
   }
   function getCurrentPageObj(){ return getOrCreatePage(currentPageNumber); }
 
+  function getFieldById(fieldId){
+    for (const p of mapping.pages){
+      const f = (p.fields||[]).find(x => x.id === fieldId);
+      if (f) return { page: p, field: f };
+    }
+    return null;
+  }
+
   function rebuildColorMap(){
     colorById = Object.create(null);
     const pages = mapping.pages.slice().sort((a,b)=>a.pageNumber-b.pageNumber);
@@ -407,7 +370,6 @@
   function setSelected(fieldId){
     selectedFieldId = fieldId || null;
 
-    // update UI
     if (!selectedFieldId){
       selIdEl.textContent = "(none)";
       noSelEl.style.display = "block";
@@ -421,32 +383,12 @@
       valueInput.value = fieldValues[selectedFieldId] || "";
     }
 
-    // update box selection styling + inline editor visibility
     overlay.querySelectorAll(".field-box").forEach(box=>{
-      const id = box.dataset.id;
-      box.classList.toggle("selected", id === selectedFieldId);
-      const editor = box.querySelector(".field-editor");
-      if (editor){
-        if (id === selectedFieldId){
-          editor.value = fieldValues[id] || "";
-        } else {
-          editor.blur();
-        }
-      }
+      box.classList.toggle("selected", box.dataset.id === selectedFieldId);
     });
-
-    // update list selection
-    overlay.querySelectorAll(".field-item").forEach(item=>{
+    fieldListEl.querySelectorAll(".field-item").forEach(item=>{
       item.classList.toggle("selected", item.dataset.id === selectedFieldId);
     });
-  }
-
-  function getFieldById(fieldId){
-    for (const p of mapping.pages){
-      const f = (p.fields||[]).find(x => x.id === fieldId);
-      if (f) return { page: p, field: f };
-    }
-    return null;
   }
 
   function removeField(fieldId){
@@ -464,19 +406,14 @@
     renderFieldList();
   }
 
-  function clamp01(n){ return Math.max(0, Math.min(1, n)); }
-
-  // Render PDF page
   async function renderPage(num){
     if (!pdfDoc) return;
-
     const page = await pdfDoc.getPage(num);
     const viewport = page.getViewport({ scale });
 
     pdfCanvas.width = viewport.width;
     pdfCanvas.height = viewport.height;
 
-    // Let CSS scale if needed; overlay uses % so it stays aligned.
     await page.render({ canvasContext: ctx, viewport }).promise;
 
     elPageNum.textContent = String(num);
@@ -488,12 +425,13 @@
     renderFieldList();
   }
 
-  // Boxes + live text on PDF
+  // ====== Draw boxes + text ======
   function renderFieldBoxes(){
     overlay.innerHTML = "";
 
     const pageObj = mapping.pages.find(p => p.pageNumber === currentPageNumber);
     const fields = pageObj?.fields || [];
+
     for (const f of fields){
       const box = document.createElement("div");
       box.className = "field-box";
@@ -503,65 +441,35 @@
       box.style.borderColor = col;
       box.style.background = hexToRgba(col, 0.14);
 
-      // Use percentages so it stays aligned even if canvas is CSS-scaled
       box.style.left   = (f.x * 100) + "%";
       box.style.top    = (f.y * 100) + "%";
       box.style.width  = (f.width * 100) + "%";
       box.style.height = (f.height * 100) + "%";
 
-      // click selects (no label on box)
-      box.title = (f.label || f.id); // hover shows label/id without clutter
-      box.addEventListener("pointerdown", (ev)=>{
-        ev.stopPropagation();
-        setSelected(f.id);
-        // focus inline editor for immediate typing
-        const editor = box.querySelector(".field-editor");
-        if (editor){
-          editor.style.display = "block";
-          editor.focus();
-          // caret to end
-          const v = editor.value;
-          editor.setSelectionRange(v.length, v.length);
-        }
-      });
+      box.title = (f.label || f.id);
 
-      // visible text overlay
       const text = document.createElement("div");
       text.className = "field-text";
       text.textContent = (fieldValues[f.id] || "");
-
-      // inline editor (shown only when selected)
-      const editor = document.createElement("textarea");
-      editor.className = "field-editor";
-      editor.value = fieldValues[f.id] || "";
-      editor.addEventListener("input", ()=>{
-        fieldValues[f.id] = editor.value;
-        text.textContent = editor.value;        // live on PDF
-        if (selectedFieldId === f.id) valueInput.value = editor.value; // keep side panel synced
-      });
-      editor.addEventListener("pointerdown", (e)=> e.stopPropagation()); // don't start drawing
-
       box.appendChild(text);
-      box.appendChild(editor);
 
-      if (f.id === selectedFieldId) box.classList.add("selected");
+      // Click selects; drag moves (pointer events)
+      box.addEventListener("pointerdown", startDragMoveBox);
 
       overlay.appendChild(box);
     }
 
-    // apply selected state after rebuild
     setSelected(selectedFieldId);
   }
 
   function renderFieldList(){
     const pageObj = mapping.pages.find(p => p.pageNumber === currentPageNumber);
     const fields = pageObj?.fields || [];
-
     fieldCountText.textContent = String(fields.length);
 
     fieldListEl.innerHTML = "";
     if (!fields.length){
-      fieldListEl.innerHTML = `<div class="hint">No fields on this page. Drag on the PDF to create one.</div>`;
+      fieldListEl.innerHTML = `<div class="hint">No fields on this page. Drag on empty space to create one.</div>`;
       return;
     }
 
@@ -582,53 +490,39 @@
           <small>${escapeHtml(f.id)}</small>
         </div>
       `;
-
       item.addEventListener("click", ()=>{
         setSelected(f.id);
-        // scroll into view on the PDF if needed
         const box = overlay.querySelector(`.field-box[data-id="${CSS.escape(f.id)}"]`);
-        if (box) box.scrollIntoView({ block: "nearest", inline: "nearest" });
+        if (box) box.scrollIntoView({ block:"nearest", inline:"nearest" });
       });
-
       fieldListEl.appendChild(item);
     }
   }
 
-  function hexToRgba(hex, a){
-    const h = String(hex||"").replace("#","");
-    if (h.length !== 6) return `rgba(255,255,255,${a})`;
-    const r = parseInt(h.slice(0,2),16);
-    const g = parseInt(h.slice(2,4),16);
-    const b = parseInt(h.slice(4,6),16);
-    return `rgba(${r},${g},${b},${a})`;
-  }
-
-  // Drawing: pointer events on overlay (not canvas)
+  // ====== Create new box by dragging on EMPTY space ======
   let drawing = false;
-  let start = null;
+  let startPt = null;
   let tempBox = null;
 
-  function overlayRect(){
-    return overlay.getBoundingClientRect();
-  }
+  function overlayRect(){ return overlay.getBoundingClientRect(); }
 
   overlay.addEventListener("pointerdown", (e)=>{
     if (!pdfDoc) return;
 
-    // if you clicked a box, it will stopPropagation and you won't get here
+    // If the user clicked a box, the box handler stops propagation.
     setSelected(null);
 
     const r = overlayRect();
-    const x = (e.clientX - r.left) / r.width;
-    const y = (e.clientY - r.top) / r.height;
+    const x = clamp01((e.clientX - r.left) / r.width);
+    const y = clamp01((e.clientY - r.top) / r.height);
 
     drawing = true;
-    start = { x: clamp01(x), y: clamp01(y) };
+    startPt = { x, y };
 
     tempBox = document.createElement("div");
     tempBox.className = "temp-box";
-    tempBox.style.left = (start.x * 100) + "%";
-    tempBox.style.top = (start.y * 100) + "%";
+    tempBox.style.left = (x * 100) + "%";
+    tempBox.style.top = (y * 100) + "%";
     tempBox.style.width = "0%";
     tempBox.style.height = "0%";
     overlay.appendChild(tempBox);
@@ -637,15 +531,15 @@
   });
 
   overlay.addEventListener("pointermove", (e)=>{
-    if (!drawing || !start || !tempBox) return;
+    if (!drawing || !startPt || !tempBox) return;
     const r = overlayRect();
     const x = clamp01((e.clientX - r.left) / r.width);
     const y = clamp01((e.clientY - r.top) / r.height);
 
-    const left = Math.min(start.x, x);
-    const top  = Math.min(start.y, y);
-    const w = Math.abs(x - start.x);
-    const h = Math.abs(y - start.y);
+    const left = Math.min(startPt.x, x);
+    const top  = Math.min(startPt.y, y);
+    const w = Math.abs(x - startPt.x);
+    const h = Math.abs(y - startPt.y);
 
     tempBox.style.left = (left * 100) + "%";
     tempBox.style.top  = (top * 100) + "%";
@@ -657,7 +551,7 @@
     if (!drawing) return;
     drawing = false;
 
-    if (!tempBox || !start) return;
+    if (!tempBox || !startPt) return;
 
     const left = parseFloat(tempBox.style.left) / 100;
     const top = parseFloat(tempBox.style.top) / 100;
@@ -667,44 +561,90 @@
     tempBox.remove();
     tempBox = null;
 
-    // reject tiny boxes
     if (width < 0.01 || height < 0.01) return;
 
     const pageObj = getCurrentPageObj();
     const newId = `field_${currentPageNumber}_${pageObj.fields.length + 1}`;
 
-    pageObj.fields.push({
-      id: newId,
-      label: "",
-      x: left, y: top,
-      width, height
-    });
-
+    pageObj.fields.push({ id:newId, label:"", x:left, y:top, width, height });
     fieldValues[newId] = "";
 
     rebuildColorMap();
     setSelected(newId);
     renderFieldBoxes();
     renderFieldList();
-
-    // auto-focus the inline editor in the new box
-    const box = overlay.querySelector(`.field-box[data-id="${CSS.escape(newId)}"]`);
-    const editor = box?.querySelector(".field-editor");
-    if (editor){
-      editor.style.display = "block";
-      editor.focus();
-    }
   });
 
-  // Side panel wiring (keeps live PDF in sync)
+  // ====== Drag existing box to MOVE it ======
+  let dragMove = null; // { id, startClientX, startClientY, startX, startY, width, height, rect }
+
+  function startDragMoveBox(ev){
+    ev.stopPropagation(); // do not start drawing a new box
+    const id = ev.currentTarget.dataset.id;
+    if (!id) return;
+
+    setSelected(id);
+
+    const res = getFieldById(id);
+    if (!res) return;
+
+    const r = overlayRect();
+    dragMove = {
+      id,
+      startClientX: ev.clientX,
+      startClientY: ev.clientY,
+      startX: res.field.x,
+      startY: res.field.y,
+      w: res.field.width,
+      h: res.field.height,
+      rect: r
+    };
+
+    ev.currentTarget.setPointerCapture(ev.pointerId);
+    ev.currentTarget.addEventListener("pointermove", onDragMoveBox);
+    ev.currentTarget.addEventListener("pointerup", endDragMoveBox, { once:true });
+    ev.currentTarget.addEventListener("pointercancel", endDragMoveBox, { once:true });
+  }
+
+  function onDragMoveBox(ev){
+    if (!dragMove) return;
+    const res = getFieldById(dragMove.id);
+    if (!res) return;
+
+    const dx = (ev.clientX - dragMove.startClientX) / dragMove.rect.width;
+    const dy = (ev.clientY - dragMove.startClientY) / dragMove.rect.height;
+
+    // clamp so box stays on page
+    const newX = clamp01(dragMove.startX + dx);
+    const newY = clamp01(dragMove.startY + dy);
+    res.field.x = Math.max(0, Math.min(1 - dragMove.w, newX));
+    res.field.y = Math.max(0, Math.min(1 - dragMove.h, newY));
+
+    // update element directly (smooth)
+    const boxEl = overlay.querySelector(`.field-box[data-id="${CSS.escape(dragMove.id)}"]`);
+    if (boxEl){
+      boxEl.style.left = (res.field.x * 100) + "%";
+      boxEl.style.top  = (res.field.y * 100) + "%";
+    }
+  }
+
+  function endDragMoveBox(ev){
+    const boxEl = ev.currentTarget;
+    boxEl.removeEventListener("pointermove", onDragMoveBox);
+    dragMove = null;
+    renderFieldList(); // update selection UI list (optional)
+  }
+
+  // ====== Side panel: live updates ON the PDF ======
   labelInput.addEventListener("input", ()=>{
     if (!selectedFieldId) return;
     const res = getFieldById(selectedFieldId);
     if (!res) return;
     res.field.label = labelInput.value;
-    // update hover title
+
     const box = overlay.querySelector(`.field-box[data-id="${CSS.escape(selectedFieldId)}"]`);
     if (box) box.title = res.field.label || res.field.id;
+
     renderFieldList();
   });
 
@@ -713,12 +653,8 @@
     fieldValues[selectedFieldId] = valueInput.value;
 
     const box = overlay.querySelector(`.field-box[data-id="${CSS.escape(selectedFieldId)}"]`);
-    if (!box) return;
-
-    const text = box.querySelector(".field-text");
-    const editor = box.querySelector(".field-editor");
-    if (text) text.textContent = valueInput.value;
-    if (editor && editor !== document.activeElement) editor.value = valueInput.value;
+    const text = box?.querySelector(".field-text");
+    if (text) text.textContent = valueInput.value; // live on PDF
   });
 
   deleteBtn.addEventListener("click", ()=>{
@@ -731,27 +667,22 @@
     fieldValues[selectedFieldId] = "";
     valueInput.value = "";
     const box = overlay.querySelector(`.field-box[data-id="${CSS.escape(selectedFieldId)}"]`);
-    if (box){
-      const text = box.querySelector(".field-text");
-      const editor = box.querySelector(".field-editor");
-      if (text) text.textContent = "";
-      if (editor) editor.value = "";
-    }
+    const text = box?.querySelector(".field-text");
+    if (text) text.textContent = "";
   });
 
-  // Keyboard delete
+  // Keyboard delete (when not typing)
   document.addEventListener("keydown", (e)=>{
     const tag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : "";
     const typing = (tag === "input" || tag === "textarea");
     if (typing) return;
-
     if ((e.key === "Delete" || e.key === "Backspace") && selectedFieldId){
       e.preventDefault();
       removeField(selectedFieldId);
     }
   });
 
-  // Page buttons
+  // Page nav
   elPrev.addEventListener("click", async ()=>{
     if (!pdfDoc || currentPageNumber <= 1) return;
     currentPageNumber--;
@@ -770,26 +701,24 @@
   elPdfFile.addEventListener("change", (e)=>{
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+
     loadedPdfName = file.name;
     elPdfNamePill.textContent = "PDF: " + loadedPdfName;
 
     const reader = new FileReader();
-    reader.onload = async function(ev){
+    reader.onload = async (ev)=>{
       originalPdfBytes = ev.target.result;
 
       const typedarray = new Uint8Array(originalPdfBytes);
-      const loadingTask = pdfjsLib.getDocument({ data: typedarray });
-
-      pdfDoc = await loadingTask.promise;
+      pdfDoc = await pdfjsLib.getDocument({ data: typedarray }).promise;
       currentPageNumber = 1;
 
-      // reset mapping for simplicity (you can remove this if you want persistence)
+      // reset (keep simple)
       mapping.pages = [];
       for (const k of Object.keys(fieldValues)) delete fieldValues[k];
       selectedFieldId = null;
 
       rebuildColorMap();
-
       elDownloadPdf.disabled = false;
       elPageCount.textContent = String(pdfDoc.numPages);
 
@@ -798,7 +727,7 @@
     reader.readAsArrayBuffer(file);
   });
 
-  // Export filled PDF (flatten text into PDF)
+  // ====== Export: flatten into PDF ======
   function safeBaseName(s){
     return (s || "filled_form").replace(/\.pdf$/i,"").replace(/[^\w\-]+/g,"_").slice(0,80) || "filled_form";
   }
@@ -838,7 +767,6 @@
         const val = (fieldValues[f.id] || "").trim();
         if (!val) continue;
 
-        // Convert normalized (top-left based) to PDF coords (bottom-left origin)
         const boxX = f.x * width;
         const boxYFromTop = f.y * height;
         const boxW = f.width * width;
@@ -895,7 +823,6 @@
       alert("Failed to generate PDF. See console.");
     });
   });
-
 </script>
 </body>
 </html>
