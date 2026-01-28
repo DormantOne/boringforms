@@ -3,71 +3,139 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PDF Write-On (Simple)</title>
+  <title>PDF Write-On (Drag Boxes)</title>
   <style>
-    :root { --bg:#0b1220; --panel:#111a2e; --line:#26324d; --text:#e8eefc; --muted:#a9b7d6; --btn:#2b6cff; --danger:#e04040; }
-    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
-    header { display:flex; gap:12px; align-items:center; padding:10px 12px; border-bottom:1px solid var(--line); background:#0a1020; position:sticky; top:0; z-index:10; }
-    header .group { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    header .spacer { flex:1; }
-    button { border:0; border-radius:8px; padding:8px 10px; background:var(--btn); color:white; cursor:pointer; font-weight:600; }
-    button.secondary { background:#1f2a44; color:var(--text); border:1px solid var(--line); }
-    button.danger { background:var(--danger); }
-    button:disabled { opacity:.55; cursor:not-allowed; }
-    input[type="file"] { color:var(--muted); }
-    input[type="text"], textarea, select { width:100%; box-sizing:border-box; border-radius:8px; border:1px solid var(--line); background:#0a1020; color:var(--text); padding:8px 10px; }
-    textarea { min-height:80px; resize:vertical; }
-    .wrap { display:grid; grid-template-columns: 1fr 340px; gap:12px; padding:12px; }
-    @media (max-width: 980px) { .wrap { grid-template-columns: 1fr; } }
+    :root{
+      --bg:#0b1220; --panel:#111a2e; --line:#26324d; --text:#e8eefc; --muted:#a9b7d6;
+      --btn:#2b6cff; --danger:#e04040; --ok:#22c55e;
+    }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg); color:var(--text); }
+    header{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      padding:10px 12px; border-bottom:1px solid var(--line); background:#0a1020;
+      position:sticky; top:0; z-index:50;
+    }
+    .group{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .spacer{ flex:1; }
+    button{ border:0; border-radius:10px; padding:8px 10px; background:var(--btn); color:white; cursor:pointer; font-weight:700; }
+    button.secondary{ background:#1f2a44; color:var(--text); border:1px solid var(--line); }
+    button.danger{ background:var(--danger); }
+    button:disabled{ opacity:.55; cursor:not-allowed; }
+    input[type="file"]{ color:var(--muted); }
+    input[type="text"], textarea{
+      width:100%; box-sizing:border-box; border-radius:10px; border:1px solid var(--line);
+      background:#0a1020; color:var(--text); padding:8px 10px;
+    }
+    textarea{ min-height:80px; resize:vertical; }
+    .wrap{ display:grid; grid-template-columns:1fr 340px; gap:12px; padding:12px; }
+    @media (max-width: 980px){ .wrap{ grid-template-columns:1fr; } .side{ position:static !important; } }
 
-    .stage {
-      background:#0a1020;
-      border:1px solid var(--line);
-      border-radius:12px;
-      overflow:auto;
-      padding:12px;
-      min-height: 60vh;
+    .stage{
+      background:#0a1020; border:1px solid var(--line); border-radius:14px;
+      overflow:auto; padding:12px; min-height:65vh;
     }
-    .canvasStack { position:relative; display:inline-block; }
-    canvas { display:block; }
+    .stack{ position:relative; display:inline-block; }
+    #pdfCanvas{ display:block; background:#0a1020; }
 
-    .side {
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:12px;
-      padding:12px;
-      height: fit-content;
-      position:sticky;
-      top:64px;
+    /* Overlay that receives drag-to-create */
+    #overlay{
+      position:absolute; left:0; top:0;
+      right:0; bottom:0;
+      pointer-events:auto;
     }
-    .side h3 { margin:0 0 10px 0; font-size:14px; color:var(--muted); letter-spacing:.02em; text-transform:uppercase; }
-    .row { display:flex; gap:8px; align-items:center; }
-    .row > * { flex:1; }
-    .label { font-size:12px; color:var(--muted); margin:10px 0 6px; }
-    .pill { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); background:#0a1020; border-radius:999px; color:var(--muted); font-size:12px; }
-    .list { margin-top:10px; border-top:1px solid var(--line); padding-top:10px; }
-    .item {
-      border:1px solid var(--line);
-      background:#0a1020;
+
+    /* Selection rectangle while dragging */
+    #marquee{
+      position:absolute; border:2px dashed rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.08);
+      display:none; pointer-events:none;
+    }
+
+    /* Field box */
+    .field{
+      position:absolute;
+      border:2px solid rgba(255,204,51,0.95);
+      background: rgba(255,204,51,0.15);
       border-radius:10px;
-      padding:8px;
-      margin-bottom:8px;
-      cursor:pointer;
+      overflow:hidden;
+      box-sizing:border-box;
+      resize: both;               /* native resize handle */
+      min-width: 120px;
+      min-height: 48px;
     }
-    .item b { display:block; font-size:13px; color:var(--text); }
-    .item small { color:var(--muted); }
-    .banner {
-      display:none;
-      margin:12px;
-      padding:10px 12px;
-      border:1px solid #6b2f2f;
-      background:#2a0f12;
-      border-radius:10px;
-      color:#ffd7d7;
+    .field.selected{
+      border-color: rgba(34,197,94,0.95);
+      background: rgba(34,197,94,0.15);
+      box-shadow: 0 0 0 2px rgba(34,197,94,0.18);
     }
-    .banner.show { display:block; }
-    .hint { font-size:12px; color:var(--muted); line-height:1.35; }
-    kbd { background:#0a1020; border:1px solid var(--line); border-bottom-width:2px; padding:1px 6px; border-radius:6px; font-size:12px; }
+
+    .fieldHeader{
+      display:flex; align-items:center; gap:8px;
+      background: rgba(10,16,32,0.88);
+      color: var(--text);
+      padding: 6px 8px;
+      font-size: 12px;
+      user-select:none;
+      cursor: move;
+    }
+    .fieldHeader input{
+      flex:1;
+      background: transparent;
+      border:1px solid rgba(255,255,255,0.12);
+      color: var(--text);
+      border-radius:8px;
+      padding:4px 6px;
+      font-size:12px;
+      min-width: 80px;
+    }
+    .fieldHeader button{
+      padding:4px 8px; border-radius:8px; font-size:12px;
+    }
+
+    .fieldBody{
+      padding:6px 8px;
+      height: calc(100% - 36px);
+      box-sizing:border-box;
+    }
+    .fieldBody textarea{
+      width:100%;
+      height:100%;
+      resize:none;
+      background: rgba(255,255,255,0.92);
+      color:#111;
+      border:1px solid rgba(0,0,0,0.18);
+      border-radius:8px;
+      font-size: 14px;
+      line-height: 1.2;
+      padding: 8px;
+      box-sizing:border-box;
+    }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border:1px solid var(--line); background:#0a1020;
+      border-radius:999px; color:var(--muted); font-size:12px;
+    }
+    .banner{
+      display:none; margin:12px; padding:10px 12px; border:1px solid #6b2f2f; background:#2a0f12;
+      border-radius:12px; color:#ffd7d7;
+    }
+    .banner.show{ display:block; }
+
+    .side{
+      background:var(--panel); border:1px solid var(--line); border-radius:14px;
+      padding:12px; height:fit-content; position:sticky; top:68px;
+    }
+    .side h3{ margin:0 0 10px; font-size:14px; color:var(--muted); letter-spacing:.02em; text-transform:uppercase; }
+    .hint{ font-size:12px; color:var(--muted); line-height:1.35; }
+    .label{ font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    .list{ margin-top:10px; border-top:1px solid var(--line); padding-top:10px; }
+    .item{
+      border:1px solid var(--line); background:#0a1020; border-radius:12px;
+      padding:8px; margin-bottom:8px; cursor:pointer;
+    }
+    .item b{ display:block; font-size:13px; color:var(--text); }
+    .item small{ color:var(--muted); }
   </style>
 </head>
 <body>
@@ -86,9 +154,7 @@
     <div class="spacer"></div>
 
     <div class="group">
-      <button id="toolSelect" class="secondary">Select/Move</button>
-      <button id="toolAdd" class="">Add Field</button>
-      <button id="del" class="danger" disabled>Delete</button>
+      <button id="delete" class="danger" disabled>Delete Selected</button>
     </div>
   </header>
 
@@ -96,570 +162,613 @@
 
   <div class="wrap">
     <div class="stage">
-      <div class="canvasStack" id="stack">
+      <div class="stack" id="stack">
         <canvas id="pdfCanvas"></canvas>
-        <canvas id="drawCanvas"></canvas>
+        <div id="overlay">
+          <div id="marquee"></div>
+        </div>
       </div>
     </div>
 
     <div class="side">
-      <h3>Selected Field</h3>
-
+      <h3>How to use</h3>
       <div class="hint">
-        Tool: <span id="toolName" class="pill" style="display:inline-flex; padding:4px 10px;">Select/Move</span><br/>
-        Tips: click “Add Field”, then click on the page to place it.
-        Use <kbd>Del</kbd> to delete selected.
-      </div>
-
-      <div class="label">Label</div>
-      <input id="fieldLabel" type="text" placeholder="e.g., Patient Name" disabled />
-
-      <div class="label">Value</div>
-      <textarea id="fieldValue" placeholder="Type what you want written onto the PDF..." disabled></textarea>
-
-      <div class="row" style="margin-top:10px;">
-        <button id="apply" class="secondary" disabled>Apply Text</button>
-        <button id="delete2" class="danger" disabled>Delete</button>
+        1) Load a PDF<br>
+        2) <b>Drag on the page</b> to draw a box<br>
+        3) Type in the box (saved live)<br>
+        4) Click a box to select; press <b>Delete</b> or click “Delete Selected”<br>
+        5) “Download Updated PDF” flattens everything into the PDF
       </div>
 
       <div class="list">
-        <h3>Fields on Page</h3>
-        <div id="fieldList" class="hint">Load a PDF and add a field.</div>
+        <h3>Fields on this page</h3>
+        <div id="fieldList" class="hint">Load a PDF and draw a box.</div>
       </div>
     </div>
   </div>
 
 <script>
 (() => {
-  // ---------- robust script loading (fixes pdfjsLib undefined) ----------
   const banner = document.getElementById('banner');
-
-  function showBanner(html) {
-    banner.innerHTML = html;
-    banner.classList.add('show');
-  }
-
-  function loadScript(url) {
-    return new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = url;
-      s.async = true;
-      s.onload = () => resolve(url);
-      s.onerror = () => reject(new Error('Failed to load: ' + url));
-      document.head.appendChild(s);
-    });
-  }
-
-  async function loadAny(candidates, testFn) {
-    let lastErr = null;
-    for (const url of candidates) {
-      try {
-        await loadScript(url);
-        if (testFn()) return url;
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-    throw lastErr || new Error('All candidates failed.');
-  }
-
-  // Paired PDF.js lib + worker URLs
-  const PDFJS_CANDIDATES = [
-    {
-      lib: "https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js",
-      worker: "https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js"
-    },
-    {
-      lib: "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js",
-      worker: "https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js"
-    },
-    {
-      lib: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js",
-      worker: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js"
-    },
-    {
-      lib: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js",
-      worker: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js"
-    }
-  ];
-
-  const FABRIC_CANDIDATES = [
-    "https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js",
-    "https://cdn.jsdelivr.net/npm/fabric@5.3.0/dist/fabric.min.js"
-  ];
-
-  const PDFLIB_CANDIDATES = [
-    "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js",
-    "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"
-  ];
-
-  async function loadPdfJsWithWorker() {
-    let lastErr = null;
-    for (const c of PDFJS_CANDIDATES) {
-      try {
-        await loadScript(c.lib);
-        if (!window.pdfjsLib) throw new Error("pdfjsLib global not created");
-        // Worker URL must match lib version when possible
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = c.worker;
-        return c;
-      } catch (e) {
-        lastErr = e;
-      }
-    }
-    throw lastErr || new Error("Failed to load PDF.js");
-  }
-
-  async function ensureLibs() {
-    try {
-      await loadAny(FABRIC_CANDIDATES, () => !!window.fabric);
-      await loadAny(PDFLIB_CANDIDATES, () => !!window.PDFLib);
-      await loadPdfJsWithWorker();
-    } catch (e) {
-      showBanner(`
-        <b>Couldn’t load required libraries.</b><br/>
-        This usually means your network is blocking CDNs or you’re offline.<br/>
-        Error: <code>${String(e.message || e)}</code><br/><br/>
-        Fix: try a different network, or download these files and serve locally:
-        <ul>
-          <li>PDF.js <code>pdf.min.js</code> + <code>pdf.worker.min.js</code></li>
-          <li>Fabric.js <code>fabric.min.js</code></li>
-          <li>pdf-lib <code>pdf-lib.min.js</code></li>
-        </ul>
-      `);
-      throw e;
-    }
-  }
-
-  // ---------- app state ----------
   const fileEl = document.getElementById('file');
   const exportBtn = document.getElementById('export');
   const prevBtn = document.getElementById('prev');
   const nextBtn = document.getElementById('next');
+  const delBtn = document.getElementById('delete');
   const pageNumEl = document.getElementById('pageNum');
   const pageCountEl = document.getElementById('pageCount');
 
-  const toolSelectBtn = document.getElementById('toolSelect');
-  const toolAddBtn = document.getElementById('toolAdd');
-  const delBtn = document.getElementById('del');
-
-  const toolNameEl = document.getElementById('toolName');
-  const fieldLabelEl = document.getElementById('fieldLabel');
-  const fieldValueEl = document.getElementById('fieldValue');
-  const applyBtn = document.getElementById('apply');
-  const delete2Btn = document.getElementById('delete2');
+  const pdfCanvas = document.getElementById('pdfCanvas');
+  const pdfCtx = pdfCanvas.getContext('2d');
+  const stack = document.getElementById('stack');
+  const overlay = document.getElementById('overlay');
+  const marquee = document.getElementById('marquee');
   const fieldListEl = document.getElementById('fieldList');
 
-  const pdfCanvas = document.getElementById('pdfCanvas');
-  const drawCanvas = document.getElementById('drawCanvas');
-  const stack = document.getElementById('stack');
-  const pdfCtx = pdfCanvas.getContext('2d');
+  function showBanner(html) {
+    if (!html) { banner.classList.remove('show'); banner.innerHTML = ""; return; }
+    banner.innerHTML = html;
+    banner.classList.add('show');
+  }
 
+  // ---- Load libs with fallbacks (prevents pdfjsLib undefined) ----
+  function loadScript(url){
+    return new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src=url; s.async=true;
+      s.onload=()=>resolve(url);
+      s.onerror=()=>reject(new Error("Failed to load: " + url));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function loadPdfJs() {
+    const candidates = [
+      { lib:"https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js", worker:"https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.worker.min.js" },
+      { lib:"https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js", worker:"https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js" },
+      { lib:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js", worker:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js" },
+      { lib:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js", worker:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js" },
+    ];
+    let lastErr=null;
+    for (const c of candidates){
+      try{
+        await loadScript(c.lib);
+        if (!window.pdfjsLib) throw new Error("pdfjsLib global not created");
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = c.worker;
+        return;
+      }catch(e){ lastErr=e; }
+    }
+    throw lastErr || new Error("Failed to load PDF.js");
+  }
+
+  async function loadPdfLib() {
+    const candidates = [
+      "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js",
+      "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"
+    ];
+    let lastErr=null;
+    for (const url of candidates){
+      try{
+        await loadScript(url);
+        if (!window.PDFLib) throw new Error("PDFLib global not created");
+        return;
+      }catch(e){ lastErr=e; }
+    }
+    throw lastErr || new Error("Failed to load pdf-lib");
+  }
+
+  // ---- State ----
   const state = {
     pdfBytes: null,
-    pdfDoc: null,
-    fileNameBase: "annotated",
-    page: 1,
+    pdfDoc: null,          // pdf.js doc
     pageCount: 0,
+    page: 1,
     viewScale: 1.35,
-    tool: "select", // 'select' | 'add'
-    fabricCanvas: null,
-    pageStates: {} // pageNumber -> { json, w, h }
+    baseName: "updated",
+    selectedId: null,
+    // pages[pageNumber] = [{id,label,value,x,y,w,h}] where x/y/w/h are normalized (0..1) relative to rendered canvas
+    pages: {}
   };
 
-  function setTool(tool) {
-    state.tool = tool;
-    toolNameEl.textContent = tool === "add" ? "Add Field" : "Select/Move";
-    toolAddBtn.classList.toggle('secondary', tool !== "add");
-    toolSelectBtn.classList.toggle('secondary', tool !== "select");
-    if (state.fabricCanvas) {
-      state.fabricCanvas.isDrawingMode = false; // keep simple
-      state.fabricCanvas.selection = (tool === "select");
-      state.fabricCanvas.defaultCursor = (tool === "add") ? "crosshair" : "default";
-    }
+  function safeBaseName(name){
+    return (name || "updated")
+      .replace(/\.pdf$/i,"")
+      .replace(/[^\w\-]+/g,"_")
+      .replace(/_+/g,"_")
+      .slice(0,80) || "updated";
   }
 
-  function enableFieldEditor(enabled) {
-    fieldLabelEl.disabled = !enabled;
-    fieldValueEl.disabled = !enabled;
-    applyBtn.disabled = !enabled;
-    delete2Btn.disabled = !enabled;
+  function getPageFields(pageNo){
+    if (!state.pages[pageNo]) state.pages[pageNo] = [];
+    return state.pages[pageNo];
   }
 
-  function setDeleteEnabled(enabled) {
-    delBtn.disabled = !enabled;
-    delete2Btn.disabled = !enabled;
-  }
-
-  function safeBaseName(name) {
-    return (name || "annotated")
-      .replace(/\.pdf$/i, "")
-      .replace(/[^\w\-]+/g, "_")
-      .replace(/_+/g, "_")
-      .slice(0, 80) || "annotated";
-  }
-
-  function saveCurrentPageState() {
-    if (!state.fabricCanvas) return;
-    const pageNo = state.page;
-    const json = state.fabricCanvas.toJSON(["data"]);
-    state.pageStates[pageNo] = { json, w: state.fabricCanvas.getWidth(), h: state.fabricCanvas.getHeight() };
-  }
-
-  function scaleObjectsToCanvas(fcanvas, sx, sy) {
-    fcanvas.getObjects().forEach(obj => {
-      obj.set({
-        left: obj.left * sx,
-        top: obj.top * sy,
-        scaleX: obj.scaleX * sx,
-        scaleY: obj.scaleY * sy
-      });
-      obj.setCoords();
+  function setSelected(id){
+    state.selectedId = id;
+    delBtn.disabled = !id;
+    // highlight
+    overlay.querySelectorAll('.field').forEach(el=>{
+      el.classList.toggle('selected', el.dataset.id === id);
     });
-    fcanvas.requestRenderAll();
   }
 
-  function clearSelectionUI() {
-    enableFieldEditor(false);
-    fieldLabelEl.value = "";
-    fieldValueEl.value = "";
-    setDeleteEnabled(false);
+  function clearOverlayFields(){
+    overlay.querySelectorAll('.field').forEach(el=>el.remove());
+    setSelected(null);
   }
 
-  function getSelectedFieldGroup() {
-    if (!state.fabricCanvas) return null;
-    const obj = state.fabricCanvas.getActiveObject();
-    if (!obj) return null;
-    if (obj.type === "activeSelection") return null;
-    if (obj.data && obj.data.type === "field") return obj;
-    return null;
+  function pxToNorm(rectPx){
+    const W = pdfCanvas.width, H = pdfCanvas.height;
+    return {
+      x: rectPx.x / W,
+      y: rectPx.y / H,
+      w: rectPx.w / W,
+      h: rectPx.h / H
+    };
   }
 
-  function refreshFieldList() {
-    if (!state.fabricCanvas) {
-      fieldListEl.textContent = "Load a PDF and add a field.";
-      return;
-    }
-    const fields = state.fabricCanvas.getObjects().filter(o => o.data && o.data.type === "field");
-    if (!fields.length) {
-      fieldListEl.innerHTML = `<div class="hint">No fields on this page yet.</div>`;
+  function normToPx(n){
+    const W = pdfCanvas.width, H = pdfCanvas.height;
+    return {
+      x: n.x * W,
+      y: n.y * H,
+      w: n.w * W,
+      h: n.h * H
+    };
+  }
+
+  function clampFieldPx(p){
+    // keep within canvas (light clamp)
+    const W = pdfCanvas.width, H = pdfCanvas.height;
+    p.w = Math.max(60, Math.min(p.w, W));
+    p.h = Math.max(36, Math.min(p.h, H));
+    p.x = Math.max(0, Math.min(p.x, W - p.w));
+    p.y = Math.max(0, Math.min(p.y, H - p.h));
+    return p;
+  }
+
+  function refreshFieldList(){
+    const fields = getPageFields(state.page);
+    if (!fields.length){
+      fieldListEl.innerHTML = `<div class="hint">No fields on this page yet. Drag to create one.</div>`;
       return;
     }
     fieldListEl.innerHTML = "";
-    fields.forEach(f => {
+    for (const f of fields){
       const div = document.createElement('div');
       div.className = 'item';
-      const label = (f.data.label || "Field").trim() || "Field";
-      div.innerHTML = `<b>${escapeHtml(label)}</b><small>${escapeHtml(f.data.id || "")}</small>`;
-      div.addEventListener('click', () => {
-        state.fabricCanvas.setActiveObject(f);
-        state.fabricCanvas.requestRenderAll();
-        syncSelectionUI();
+      div.innerHTML = `<b>${escapeHtml((f.label||"Field").trim() || "Field")}</b><small>${escapeHtml(f.id)}</small>`;
+      div.addEventListener('click', ()=>{
+        setSelected(f.id);
+        const el = overlay.querySelector(`.field[data-id="${CSS.escape(f.id)}"]`);
+        if (el) el.scrollIntoView({block:"nearest", inline:"nearest"});
       });
       fieldListEl.appendChild(div);
-    });
-  }
-
-  function escapeHtml(s) {
-    return String(s || "")
-      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-      .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
-  }
-
-  function syncSelectionUI() {
-    const group = getSelectedFieldGroup();
-    if (!group) {
-      clearSelectionUI();
-      return;
     }
-    enableFieldEditor(true);
-    fieldLabelEl.value = group.data.label || "";
-    fieldValueEl.value = group.data.value || "";
-    setDeleteEnabled(true);
   }
 
-  function createFieldAt(x, y) {
-    const fabric = window.fabric;
+  function escapeHtml(s){
+    return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
 
-    const id = "field_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
-    const labelText = new fabric.Text("Label", {
-      left: 0, top: -16, fontSize: 12, fill: "#111",
-      backgroundColor: "rgba(255,255,255,0.85)",
-      padding: 2
+  // ---- Build a field DOM element ----
+  function createFieldDom(field){
+    const el = document.createElement('div');
+    el.className = 'field';
+    el.dataset.id = field.id;
+
+    const header = document.createElement('div');
+    header.className = 'fieldHeader';
+
+    const labelInput = document.createElement('input');
+    labelInput.value = field.label || "";
+    labelInput.placeholder = "Label";
+
+    const xbtn = document.createElement('button');
+    xbtn.className = "danger";
+    xbtn.type = "button";
+    xbtn.textContent = "X";
+
+    header.appendChild(labelInput);
+    header.appendChild(xbtn);
+
+    const body = document.createElement('div');
+    body.className = 'fieldBody';
+
+    const ta = document.createElement('textarea');
+    ta.value = field.value || "";
+    ta.placeholder = "Type here...";
+    body.appendChild(ta);
+
+    el.appendChild(header);
+    el.appendChild(body);
+
+    // position
+    const p = normToPx(field);
+    el.style.left = `${p.x}px`;
+    el.style.top = `${p.y}px`;
+    el.style.width = `${p.w}px`;
+    el.style.height = `${p.h}px`;
+
+    // selection
+    el.addEventListener('mousedown', (e)=>{
+      e.stopPropagation();
+      setSelected(field.id);
     });
 
-    const rect = new fabric.Rect({
-      left: 0, top: 0, width: 220, height: 60,
-      rx: 6, ry: 6,
-      fill: "rgba(255, 215, 64, 0.18)",
-      stroke: "#ffcc33",
-      strokeWidth: 2
+    // delete button
+    xbtn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      deleteFieldById(field.id);
     });
 
-    const valueText = new fabric.Textbox("", {
-      left: 8, top: 8,
-      width: 204,
-      fontSize: 14,
-      fill: "#111"
+    // label updates live
+    labelInput.addEventListener('input', ()=>{
+      field.label = labelInput.value;
+      refreshFieldList();
     });
 
-    const group = new fabric.Group([rect, valueText, labelText], {
-      left: x, top: y,
-      originX: "left", originY: "top",
-      cornerStyle: "circle",
-      transparentCorners: false,
-      padding: 2
+    // value updates live
+    ta.addEventListener('input', ()=>{
+      field.value = ta.value;
     });
 
-    group.data = { type: "field", id, label: "Label", value: "" };
+    // drag by header
+    let dragging=false, startX=0, startY=0, startLeft=0, startTop=0;
+    header.addEventListener('mousedown', (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+      setSelected(field.id);
+      dragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startLeft = parseFloat(el.style.left);
+      startTop = parseFloat(el.style.top);
 
-    state.fabricCanvas.add(group);
-    state.fabricCanvas.setActiveObject(group);
-    state.fabricCanvas.requestRenderAll();
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp, { once:true });
+    });
+
+    function onMove(e){
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const p2 = clampFieldPx({
+        x: startLeft + dx,
+        y: startTop + dy,
+        w: parseFloat(el.style.width),
+        h: parseFloat(el.style.height)
+      });
+      el.style.left = `${p2.x}px`;
+      el.style.top = `${p2.y}px`;
+    }
+
+    function onUp(){
+      dragging=false;
+      window.removeEventListener('mousemove', onMove);
+      // commit normalized coords
+      commitDomToField(el, field);
+    }
+
+    // watch resize (native resize handle)
+    const ro = new ResizeObserver(()=> {
+      commitDomToField(el, field);
+    });
+    ro.observe(el);
+
+    return el;
+  }
+
+  function commitDomToField(el, field){
+    const p = clampFieldPx({
+      x: parseFloat(el.style.left),
+      y: parseFloat(el.style.top),
+      w: parseFloat(el.style.width),
+      h: parseFloat(el.style.height)
+    });
+    el.style.left = `${p.x}px`;
+    el.style.top = `${p.y}px`;
+    el.style.width = `${p.w}px`;
+    el.style.height = `${p.h}px`;
+    const n = pxToNorm(p);
+    field.x = n.x; field.y = n.y; field.w = n.w; field.h = n.h;
+  }
+
+  function rebuildOverlayForPage(){
+    clearOverlayFields();
+    const fields = getPageFields(state.page);
+    for (const f of fields){
+      const el = createFieldDom(f);
+      overlay.appendChild(el);
+    }
     refreshFieldList();
-    syncSelectionUI();
   }
 
-  async function renderPage(pageNo) {
+  function deleteFieldById(id){
+    const fields = getPageFields(state.page);
+    const idx = fields.findIndex(f=>f.id===id);
+    if (idx !== -1) fields.splice(idx, 1);
+    const el = overlay.querySelector(`.field[data-id="${CSS.escape(id)}"]`);
+    if (el) el.remove();
+    if (state.selectedId === id) setSelected(null);
+    refreshFieldList();
+  }
+
+  // ---- Drag to create a new field box ----
+  let drawing=false, startPx=null;
+
+  overlay.addEventListener('mousedown', (e)=>{
+    // only if not clicking inside an existing field
+    if (e.target.closest('.field')) return;
+
+    if (!state.pdfDoc) return;
+    drawing = true;
+    setSelected(null);
+
+    const r = overlay.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    startPx = { x, y };
+
+    marquee.style.display = "block";
+    marquee.style.left = `${x}px`;
+    marquee.style.top = `${y}px`;
+    marquee.style.width = `0px`;
+    marquee.style.height = `0px`;
+
+    window.addEventListener('mousemove', onDrawMove);
+    window.addEventListener('mouseup', onDrawUp, { once:true });
+  });
+
+  function onDrawMove(e){
+    if (!drawing) return;
+    const r = overlay.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+
+    const left = Math.min(startPx.x, x);
+    const top = Math.min(startPx.y, y);
+    const w = Math.abs(x - startPx.x);
+    const h = Math.abs(y - startPx.y);
+
+    marquee.style.left = `${left}px`;
+    marquee.style.top = `${top}px`;
+    marquee.style.width = `${w}px`;
+    marquee.style.height = `${h}px`;
+  }
+
+  function onDrawUp(e){
+    window.removeEventListener('mousemove', onDrawMove);
+    if (!drawing) return;
+    drawing = false;
+
+    const left = parseFloat(marquee.style.left);
+    const top = parseFloat(marquee.style.top);
+    const w = parseFloat(marquee.style.width);
+    const h = parseFloat(marquee.style.height);
+    marquee.style.display = "none";
+
+    if (w < 8 || h < 8) return;
+
+    const p = clampFieldPx({ x:left, y:top, w, h });
+    const n = pxToNorm(p);
+
+    const fields = getPageFields(state.page);
+    const id = `field_${state.page}_${Date.now().toString(36)}`;
+    const field = { id, label:"", value:"", x:n.x, y:n.y, w:n.w, h:n.h };
+
+    fields.push(field);
+
+    const el = createFieldDom(field);
+    overlay.appendChild(el);
+    setSelected(id);
+    refreshFieldList();
+
+    // focus textarea
+    const ta = el.querySelector('textarea');
+    if (ta) ta.focus();
+  }
+
+  // ---- Page rendering ----
+  async function renderPage(pageNo){
     const pdfjsLib = window.pdfjsLib;
     if (!state.pdfDoc) return;
-
-    // Save previous page overlay
-    saveCurrentPageState();
 
     state.page = pageNo;
     pageNumEl.textContent = String(state.page);
     pageCountEl.textContent = String(state.pageCount);
-    prevBtn.disabled = (state.page <= 1);
-    nextBtn.disabled = (state.page >= state.pageCount);
+    prevBtn.disabled = state.page <= 1;
+    nextBtn.disabled = state.page >= state.pageCount;
 
     const page = await state.pdfDoc.getPage(pageNo);
     const viewport = page.getViewport({ scale: state.viewScale });
 
-    // PDF background canvas
     pdfCanvas.width = Math.floor(viewport.width);
     pdfCanvas.height = Math.floor(viewport.height);
 
-    // Overlay canvas (fabric)
-    drawCanvas.width = pdfCanvas.width;
-    drawCanvas.height = pdfCanvas.height;
-
-    // Keep stack sized to content
     stack.style.width = pdfCanvas.width + "px";
     stack.style.height = pdfCanvas.height + "px";
-    drawCanvas.style.position = "absolute";
-    drawCanvas.style.left = "0";
-    drawCanvas.style.top = "0";
+    overlay.style.width = pdfCanvas.width + "px";
+    overlay.style.height = pdfCanvas.height + "px";
 
     await page.render({ canvasContext: pdfCtx, viewport }).promise;
 
-    const fabric = window.fabric;
-    if (!state.fabricCanvas) {
-      state.fabricCanvas = new fabric.Canvas(drawCanvas, {
-        preserveObjectStacking: true,
-        selection: true
-      });
+    rebuildOverlayForPage();
+  }
 
-      // click-to-add
-      state.fabricCanvas.on("mouse:down", (opt) => {
-        if (state.tool !== "add") return;
-        // don't add if clicking an existing object
-        if (opt.target) return;
-        const p = state.fabricCanvas.getPointer(opt.e);
-        createFieldAt(p.x, p.y);
-        setTool("select");
-      });
+  prevBtn.addEventListener('click', async ()=>{
+    if (!state.pdfDoc || state.page <= 1) return;
+    await renderPage(state.page - 1);
+  });
+  nextBtn.addEventListener('click', async ()=>{
+    if (!state.pdfDoc || state.page >= state.pageCount) return;
+    await renderPage(state.page + 1);
+  });
 
-      // selection hooks
-      state.fabricCanvas.on("selection:created", syncSelectionUI);
-      state.fabricCanvas.on("selection:updated", syncSelectionUI);
-      state.fabricCanvas.on("selection:cleared", () => { clearSelectionUI(); });
+  // delete selected
+  function deleteSelected(){
+    if (!state.selectedId) return;
+    deleteFieldById(state.selectedId);
+  }
+  delBtn.addEventListener('click', deleteSelected);
 
-      // keyboard delete
-      window.addEventListener("keydown", (e) => {
-        if (e.key === "Delete" || e.key === "Backspace") {
-          const active = state.fabricCanvas.getActiveObject();
-          if (active) {
-            e.preventDefault();
-            deleteSelected();
-          }
-        }
-      });
-    } else {
-      // resize existing fabric canvas
-      const oldW = state.fabricCanvas.getWidth();
-      const oldH = state.fabricCanvas.getHeight();
-      state.fabricCanvas.setWidth(drawCanvas.width);
-      state.fabricCanvas.setHeight(drawCanvas.height);
-      // if we resized, we’ll scale restored objects when loading state below
-      state.fabricCanvas.requestRenderAll();
-      // (no scaling here; we do it when restoring)
-    }
-
-    // restore overlay for this page (if any)
-    state.fabricCanvas.clear();
-
-    const saved = state.pageStates[pageNo];
-    if (saved && saved.json) {
-      const oldW = saved.w || drawCanvas.width;
-      const oldH = saved.h || drawCanvas.height;
-      await new Promise((resolve) => {
-        state.fabricCanvas.loadFromJSON(saved.json, () => resolve());
-      });
-      // scale if canvas size differs
-      const sx = drawCanvas.width / oldW;
-      const sy = drawCanvas.height / oldH;
-      if (Math.abs(sx - 1) > 0.001 || Math.abs(sy - 1) > 0.001) {
-        scaleObjectsToCanvas(state.fabricCanvas, sx, sy);
+  window.addEventListener('keydown', (e)=>{
+    if (e.key === "Delete" || e.key === "Backspace"){
+      // don't kill text while typing inside textarea/input
+      const tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
+      const typing = tag === "textarea" || tag === "input";
+      if (typing) return;
+      if (state.selectedId){
+        e.preventDefault();
+        deleteSelected();
       }
-      state.fabricCanvas.requestRenderAll();
     }
+  });
 
-    setTool(state.tool); // ensure correct cursor/selection mode
-    refreshFieldList();
-    clearSelectionUI();
-  }
+  // ---- Export flattened PDF ----
+  function wrapText(font, text, size, maxWidth){
+    // simple word wrap; returns array of lines
+    const words = String(text || "").replace(/\r/g,"").split(/\s+/).filter(Boolean);
+    if (!words.length) return [];
 
-  function deleteSelected() {
-    if (!state.fabricCanvas) return;
-    const active = state.fabricCanvas.getActiveObject();
-    if (!active) return;
+    const lines = [];
+    let line = words[0];
 
-    if (active.type === "activeSelection") {
-      active.getObjects().forEach(obj => state.fabricCanvas.remove(obj));
-      state.fabricCanvas.discardActiveObject();
-    } else {
-      state.fabricCanvas.remove(active);
-      state.fabricCanvas.discardActiveObject();
+    for (let i=1;i<words.length;i++){
+      const test = line + " " + words[i];
+      const w = font.widthOfTextAtSize(test, size);
+      if (w <= maxWidth){
+        line = test;
+      } else {
+        // if single word too long, hard break
+        if (font.widthOfTextAtSize(words[i], size) > maxWidth){
+          // break word into chunks
+          const chunked = breakWord(font, words[i], size, maxWidth);
+          lines.push(line);
+          lines.push(...chunked.slice(0, chunked.length-1));
+          line = chunked[chunked.length-1];
+        } else {
+          lines.push(line);
+          line = words[i];
+        }
+      }
     }
-    state.fabricCanvas.requestRenderAll();
-    refreshFieldList();
-    clearSelectionUI();
+    lines.push(line);
+    return lines;
   }
 
-  function applyTextToSelected() {
-    const group = getSelectedFieldGroup();
-    if (!group) return;
-
-    const newLabel = (fieldLabelEl.value || "").trim();
-    const newValue = (fieldValueEl.value || "");
-
-    // group objects: [rect, valueText, labelText]
-    const objs = group.getObjects();
-    const rect = objs[0];
-    const valueText = objs[1];
-    const labelText = objs[2];
-
-    group.data.label = newLabel;
-    group.data.value = newValue;
-
-    labelText.set("text", newLabel || "Label");
-    valueText.set("text", newValue || "");
-
-    // expand rect height a bit if multi-line
-    const lines = String(newValue).split("\n").length;
-    const newH = Math.max(60, 24 + lines * 18);
-    rect.set("height", newH);
-    valueText.set("height", newH - 16);
-
-    group._calcBounds();
-    group._updateObjectsCoords();
-    group.setCoords();
-
-    state.fabricCanvas.requestRenderAll();
-    refreshFieldList();
+  function breakWord(font, word, size, maxWidth){
+    const out=[];
+    let cur="";
+    for (const ch of word){
+      const test = cur + ch;
+      if (font.widthOfTextAtSize(test, size) <= maxWidth){
+        cur = test;
+      } else {
+        if (cur) out.push(cur);
+        cur = ch;
+      }
+    }
+    if (cur) out.push(cur);
+    return out.length ? out : [word];
   }
 
-  async function exportAnnotatedPdf() {
+  async function exportPdf(){
     if (!state.pdfBytes || !state.pdfDoc) return;
 
-    saveCurrentPageState();
+    const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+    const pdf = await PDFDocument.load(state.pdfBytes);
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const pages = pdf.getPages();
 
-    const pdfjsLib = window.pdfjsLib;
-    const { PDFDocument } = window.PDFLib;
+    for (let p=1; p<=state.pageCount; p++){
+      const fields = state.pages[p] || [];
+      if (!fields.length) continue;
 
-    const origPdf = await PDFDocument.load(state.pdfBytes);
-    const outPdf = await PDFDocument.create();
-    const origPages = origPdf.getPages();
+      const page = pages[p-1];
+      const { width, height } = page.getSize();
 
-    const EXPORT_SCALE = 2.0; // higher = sharper output (slower)
+      for (const f of fields){
+        const value = (f.value || "").trim();
+        if (!value) continue;
 
-    for (let i = 1; i <= state.pageCount; i++) {
-      // render PDF page background via pdf.js
-      const page = await state.pdfDoc.getPage(i);
-      const viewport = page.getViewport({ scale: EXPORT_SCALE });
+        const margin = 2;
+        const boxX = f.x * width;
+        const boxYTopFromTop = f.y * height;
+        const boxW = f.w * width;
+        const boxH = f.h * height;
 
-      const bg = document.createElement("canvas");
-      bg.width = Math.floor(viewport.width);
-      bg.height = Math.floor(viewport.height);
-      const bgCtx = bg.getContext("2d");
+        const fontSize = 11;
+        const lineGap = 2;
+        const maxW = Math.max(10, boxW - margin*2);
 
-      await page.render({ canvasContext: bgCtx, viewport }).promise;
+        // support explicit newlines: wrap each paragraph separately
+        const paragraphs = String(f.value || "").replace(/\r/g,"").split("\n");
+        let lines = [];
+        for (const para of paragraphs){
+          if (!para.trim()){
+            lines.push(""); // blank line
+            continue;
+          }
+          lines.push(...wrapText(font, para, fontSize, maxW));
+        }
 
-      // render overlay via fabric static canvas, scaled up
-      const overlay = new window.fabric.StaticCanvas(null, { width: bg.width, height: bg.height });
+        // PDF coords: origin bottom-left; we want to start near top inside the box
+        const topY = height - boxYTopFromTop - margin;
+        let y = topY - fontSize;
 
-      const saved = state.pageStates[i];
-      if (saved && saved.json) {
-        await new Promise((resolve) => overlay.loadFromJSON(saved.json, () => resolve()));
+        const minY = height - (boxYTopFromTop + boxH) + margin;
 
-        const sx = bg.width / (saved.w || bg.width);
-        const sy = bg.height / (saved.h || bg.height);
-        if (Math.abs(sx - 1) > 0.001 || Math.abs(sy - 1) > 0.001) {
-          overlay.getObjects().forEach(obj => {
-            obj.set({
-              left: obj.left * sx,
-              top: obj.top * sy,
-              scaleX: obj.scaleX * sx,
-              scaleY: obj.scaleY * sy
-            });
-            obj.setCoords();
+        for (const line of lines){
+          if (y < minY) break;
+          page.drawText(line, {
+            x: boxX + margin,
+            y,
+            size: fontSize,
+            font,
+            color: rgb(0,0,0),
+            maxWidth: maxW
           });
-          overlay.requestRenderAll();
+          y -= (fontSize + lineGap);
         }
       }
-
-      // composite overlay onto background
-      const overlayEl = overlay.getElement();
-      bgCtx.drawImage(overlayEl, 0, 0);
-
-      // convert composite to PNG bytes
-      const dataUrl = bg.toDataURL("image/png");
-      const pngBytes = await (await fetch(dataUrl)).arrayBuffer();
-
-      // new page in output PDF with same size as original page
-      const srcPage = origPages[i - 1];
-      const { width, height } = srcPage.getSize();
-
-      const outPage = outPdf.addPage([width, height]);
-      const embedded = await outPdf.embedPng(pngBytes);
-
-      outPage.drawImage(embedded, { x: 0, y: 0, width, height });
     }
 
-    const outBytes = await outPdf.save();
-    const blob = new Blob([outBytes], { type: "application/pdf" });
+    const outBytes = await pdf.save();
+    const blob = new Blob([outBytes], { type:"application/pdf" });
     const url = URL.createObjectURL(blob);
 
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = state.fileNameBase + "_updated.pdf";
+    a.download = state.baseName + "_updated.pdf";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
-  // ---------- UI wiring ----------
-  fileEl.addEventListener('change', async (e) => {
-    const f = e.target.files && e.target.files[0];
-    if (!f) return;
+  exportBtn.addEventListener('click', async ()=>{
+    exportBtn.disabled = true;
+    exportBtn.textContent = "Building PDF...";
+    try{
+      await exportPdf();
+      showBanner("");
+    }catch(err){
+      console.error(err);
+      showBanner(`<b>Export failed.</b><br/><code>${escapeHtml(String(err?.message || err))}</code>`);
+    }finally{
+      exportBtn.textContent = "Download Updated PDF";
+      exportBtn.disabled = false;
+    }
+  });
 
-    const bytes = await f.arrayBuffer();
-    state.pdfBytes = bytes;
-    state.fileNameBase = safeBaseName(f.name);
+  // ---- Load PDF ----
+  async function loadPdfFromFile(file){
+    state.baseName = safeBaseName(file.name);
+    state.pdfBytes = await file.arrayBuffer();
 
-    const pdfjsLib = window.pdfjsLib;
-    const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(bytes) });
+    const typed = new Uint8Array(state.pdfBytes);
+    const loadingTask = window.pdfjsLib.getDocument({ data: typed });
     state.pdfDoc = await loadingTask.promise;
 
     state.pageCount = state.pdfDoc.numPages;
@@ -667,63 +776,46 @@
 
     pageCountEl.textContent = String(state.pageCount);
     pageNumEl.textContent = "1";
-
     prevBtn.disabled = true;
-    nextBtn.disabled = (state.pageCount <= 1);
+    nextBtn.disabled = state.pageCount <= 1;
 
     exportBtn.disabled = false;
 
-    // reset overlays
-    state.pageStates = {};
-    if (state.fabricCanvas) state.fabricCanvas.clear();
-    clearSelectionUI();
-    refreshFieldList();
+    // keep any existing annotations? simplest: clear
+    state.pages = {};
+    state.selectedId = null;
+    delBtn.disabled = true;
 
     await renderPage(1);
+  }
 
-    showBanner(""); banner.classList.remove('show');
-  });
-
-  prevBtn.addEventListener('click', async () => {
-    if (!state.pdfDoc || state.page <= 1) return;
-    await renderPage(state.page - 1);
-  });
-  nextBtn.addEventListener('click', async () => {
-    if (!state.pdfDoc || state.page >= state.pageCount) return;
-    await renderPage(state.page + 1);
-  });
-
-  toolSelectBtn.addEventListener('click', () => setTool("select"));
-  toolAddBtn.addEventListener('click', () => setTool("add"));
-
-  delBtn.addEventListener('click', deleteSelected);
-  delete2Btn.addEventListener('click', deleteSelected);
-  applyBtn.addEventListener('click', applyTextToSelected);
-
-  exportBtn.addEventListener('click', async () => {
-    exportBtn.disabled = true;
-    exportBtn.textContent = "Building PDF...";
-    try {
-      await exportAnnotatedPdf();
-    } catch (err) {
+  fileEl.addEventListener('change', async (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try{
+      await loadPdfFromFile(f);
+      showBanner("");
+    }catch(err){
       console.error(err);
-      showBanner(`<b>Export failed.</b><br/><code>${escapeHtml(String(err && err.message ? err.message : err))}</code>`);
-    } finally {
-      exportBtn.textContent = "Download Updated PDF";
-      exportBtn.disabled = false;
+      showBanner(`<b>PDF load failed.</b><br/><code>${escapeHtml(String(err?.message || err))}</code>`);
     }
   });
 
-  // Keep delete/apply enabled only when a field is selected
-  fieldLabelEl.addEventListener('input', () => {});
-  fieldValueEl.addEventListener('input', () => {});
-
-  // ---------- boot ----------
-  (async () => {
-    await ensureLibs();
-    // now safe to reference window.pdfjsLib etc
-    setTool("select");
+  // ---- Boot: load libs ----
+  (async ()=>{
+    try{
+      await loadPdfJs();
+      await loadPdfLib();
+    }catch(err){
+      console.error(err);
+      showBanner(`
+        <b>Couldn’t load required libraries.</b><br/>
+        Your network may block CDNs or you may be offline.<br/>
+        Error: <code>${escapeHtml(String(err?.message || err))}</code>
+      `);
+    }
   })();
+
 })();
 </script>
 </body>
