@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CMI Forms — Copilot Form Completion Builder v3</title>
+  <title>CMI Forms — One-PDF Copilot Form Builder</title>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
     :root{
@@ -92,7 +92,7 @@
 <div class="wrap">
   <section class="phoneGate" id="phoneGate" aria-live="polite">
     <div class="phoneGateTitle">Use this from a computer when possible.</div>
-    <p>This tool combines a form PDF with chart notes into one packet PDF. That workflow is much easier on a computer.</p>
+    <p>This tool creates one self-instructing PDF containing the instructions, form, and chart notes. Attach that single PDF to Copilot.</p>
     <div class="phoneGateActions">
       <button class="mini" id="shareLinkBtn" type="button">📤 Share this link</button>
       <a class="ghost" id="emailSelfBtn" href="mailto:">✉️ Email link to myself</a>
@@ -104,9 +104,10 @@
   <header class="header">
     <div class="htop">
       <div>
-        <div class="title">CMI Forms — Copilot Form Completion Builder</div>
+        <div class="title">CMI Forms — One-PDF Form Completion Builder</div>
         <div class="subtitle">
-          Choose the form type, add the PDF, then paste the chart material that can answer it. The combined PDF begins with a dedicated Copilot instruction page, followed by the original form and then the supporting chart information.
+          Choose the form type, add the PDF, and paste the chart material. One click creates a self-contained PDF containing the Copilot instructions, the blank form, and the clinical information.
+          <br><strong>Attach that one PDF to Copilot. No separate prompt needs to be copied or pasted.</strong>
           <br><strong>Use only with approved Microsoft 365 Copilot / authorized clinical workflows.</strong>
         </div>
         <div class="meta">This local page does not send or save form or chart text by itself.</div>
@@ -181,35 +182,41 @@
       </fieldset>
 
       <div class="btnRow">
-        <button class="btn primary" id="seeBtn" type="button">👁 Build Payload</button>
-        <button class="btn secondary" id="pdfBtn" type="button">📄 Build Combined PDF</button>
-        <button class="btn secondary" id="copyBtn" type="button">📋 Copy Payload</button>
-        <button class="btn secondary" id="openCopilotBtn" type="button">🪟 Build PDF + Open Copilot</button>
+        <button class="btn primary" id="openCopilotBtn" type="button">📎 Create One-PDF Prompt & Open Copilot</button>
+        <button class="btn secondary" id="pdfBtn" type="button">📄 Build PDF Only</button>
         <button class="btn secondary" id="clearBtn" type="button">🧹 Clear</button>
       </div>
     </section>
 
     <section class="panel previewPanel">
       <div class="phead">
-        <div class="ptitle">Copilot Payload Preview</div>
-        <button class="mini" id="buildOpenBtn" type="button">Build Packet & Open Copilot</button>
+        <div class="ptitle">Single-file Copilot workflow</div>
+        <button class="mini" id="buildOpenBtn" type="button">Create PDF & Open Copilot</button>
       </div>
+
       <fieldset>
-        <legend>Generated Copilot payload</legend>
-        <div class="out" id="output">Choose a form type, add a PDF, and paste chart material. Then build the payload.</div>
+        <legend>Only one item goes into the Copilot prompt</legend>
+        <div class="notice safe" style="margin-top:0"><b>The generated PDF is the prompt.</b> It contains everything Copilot needs:</div>
+        <div class="out" id="packetOutline">PAGE 1 — Instructions to Copilot
+
+PAGES 2+ — Original blank form
+
+FINAL PAGES — Form-specific guidance and pasted chart material
+
+COPILOT ACTION — Attach this single PDF. Do not paste a second text prompt.</div>
       </fieldset>
 
       <div class="packetBox">
-        <div class="packetTitle">Combined packet PDF</div>
-        <div class="meta" id="packetStatus">Not built yet. Page 1 will contain the Copilot instructions. The original form will follow, with supporting chart information after the form.</div>
+        <div class="packetTitle">One-PDF prompt</div>
+        <div class="meta" id="packetStatus">Not built yet. The finished PDF will be complete and self-instructing.</div>
         <div class="packetActions">
-          <button class="ghost" id="downloadPacketBtn" type="button" disabled>⬇ Download packet</button>
-          <button class="ghost" id="openPacketBtn" type="button" disabled>↗ Open packet PDF</button>
+          <button class="ghost" id="downloadPacketBtn" type="button" disabled>⬇ Download PDF again</button>
+          <button class="ghost" id="openPacketBtn" type="button" disabled>↗ Review PDF</button>
         </div>
       </div>
 
-      <div class="notice safe"><b>Output design:</b> Copilot is asked to complete every substantive form field with a clear, definite best answer. Confidence appears only in the separate reviewer recap.</div>
-      <div class="notice warn"><b>Important:</b> The page can build and download the single PDF, copy the payload, and open Copilot. Browser security does not allow it to attach the PDF to Copilot automatically; drag the downloaded packet into the Copilot chat, then paste the copied payload.</div>
+      <div class="notice safe"><b>Form output:</b> clear and definite best answers in the form; confidence appears only in the separate reviewer recap.</div>
+      <div class="notice warn"><b>In Copilot:</b> attach or drag in the one downloaded PDF. Nothing else needs to be pasted. Browsers cannot securely attach a local file to the Copilot website automatically.</div>
     </section>
   </div>
 </div>
@@ -245,7 +252,6 @@
 
   const $ = id => document.getElementById(id);
   const notesBox = $("notesBox");
-  const output = $("output");
   let noteCount = 0;
   let selectedFormType = "FMLA";
   let formFile = null;
@@ -367,7 +373,7 @@
     packetUrl = null;
     $("downloadPacketBtn").disabled = true;
     $("openPacketBtn").disabled = true;
-    if(formFile) $("packetStatus").textContent = "Inputs changed. Rebuild the combined PDF before using it.";
+    if(formFile) $("packetStatus").textContent = "Inputs changed. Rebuild the one-PDF prompt before using it.";
   }
 
   function setFormType(type, options){
@@ -398,87 +404,6 @@
     return FORM_TASKS[selectedFormType] || FORM_TASKS.Other;
   }
 
-  function buildPrompt(){
-    const guidance = $("suggestedNotes").value.trim();
-    const optional = $("optionalNotes").value.trim();
-    const notes = collectNotes();
-
-    if(!guidance && !notes.length){
-      output.textContent = "Choose a form type or paste chart material first.";
-      toast("Nothing to build yet.");
-      return output.textContent;
-    }
-
-    const prompt = `You are completing a clinical or administrative medical form for a UPMC primary care physician.
-
-PACKET ORDER
-The attached PDF contains:
-1. A dedicated instruction sheet on page 1.
-2. The original blank form immediately after the instruction sheet.
-3. Form-specific working notes and chart information after the final form page.
-
-CORE METHOD
-- Read and follow the instruction sheet on page 1.
-- Then review the entire form carefully, page by page.
-- Identify every question, field, checkbox, table, date range, frequency, duration, restriction, functional judgment, and requested narrative.
-- After reviewing the complete form, read all information appended after the final form page.
-- Extract the most relevant information and map it to the form fields.
-- Complete every substantive field. Do not skip a field merely because the chart wording is indirect or incomplete.
-
-1. COMPLETED FORM ARTIFACT
-- Produce a completed form artifact that follows the original field order, wording, checkboxes, tables, and layout as closely as your tools permit.
-- Prefer editing the actual PDF. If direct PDF editing is unavailable, create an editable document artifact that mirrors every form field in order.
-- Always choose and enter the most reasonable best answer for every substantive field.
-- Use definite language in the form. Do not write “possibly,” “likely,” “appears,” “based on the record,” “inferred,” “uncertain,” “needs confirmation,” or confidence labels inside the form.
-- When an exact number or date is unavailable, supply the most clinically reasonable estimate rather than leaving the field blank.
-- When a yes/no choice is required, select the best answer rather than refusing to choose.
-- When a narrative is required, write a concise, direct statement suitable for the form.
-- Do not cite notes, pages, evidence, sources, or appended material anywhere in the completed form.
-- Do not fabricate a clinician signature, legal attestation, or a physical examination that did not occur. Leave only signature and clinician-attestation fields for the human reviewer. All other substantive fields should be completed.
-
-2. REVIEWER RESPONSE
-After creating the completed form artifact, provide a concise recap for the human reviewer.
-For each important form question, use exactly:
-Question: [plain-language form question]
-Answer entered: [the definite answer placed in the form]
-Confidence: High / Moderate / Low
-
-- Confidence belongs only in this reviewer response, never in the form.
-- Do not cite evidence, notes, pages, sources, or record locations in the recap.
-- Do not narrate reasoning or hedge the answer.
-- The purpose of the recap is to let the human reviewer quickly adjust any answer before signing.
-
-3. ADDITIONAL QUESTIONS FOR REVIEW
-At the end, add a brief section titled “Additional questions for review.”
-- Include only questions that could materially change the completed form.
-- For each question, give a suggested answer in definite language and a confidence level.
-- You may state the general chart area where the reviewer could check it, such as medication list, recent PCP note, discharge summary, specialist note, therapy note, functional assessment, laboratory results, imaging, or patient message.
-- Do not add citations or evidence references.
-
-4. STYLE
-- Be decisive, practical, and concise.
-- Do not provide a chart summary unless a form field requires it.
-- Do not add generic disclaimers.
-- Do not ask permission before completing the form.
-- Do not stop because information is incomplete. Make the best reasonable choice and complete the field.
-
-FORM TYPE
-${selectedFormType}
-
-EMBEDDED FORM-COMPLETION TASK
-${embeddedTask()}
-
-FORM-SPECIFIC WORKING NOTES
-${guidance || "No additional form-specific notes supplied."}
-
-OPTIONAL INSTRUCTIONS
-${optional || "None."}
-
-Follow page 1 of the packet, review the complete form, extract the answers from the information after the form, complete every substantive field with definite best answers, create the completed form artifact, and provide the confidence-tagged reviewer recap.`;
-
-    output.textContent = prompt;
-    return prompt;
-  }
 
   function sanitizePdfText(text){
     return String(text || "")
@@ -577,19 +502,47 @@ COMPLETION RULES
 AFTER COMPLETING THE FORM
 Provide a concise reviewer recap outside the form. For each important item state: Question; Answer entered; Confidence: High, Moderate, or Low. Do not cite evidence in the recap. End with only the additional questions that could materially change the form, including a suggested answer, confidence, and the general chart area where a reviewer could check it.
 
+THIS PDF IS THE COMPLETE PROMPT
+Do not wait for or request any separate text instruction. The attached PDF itself contains the instructions, form, and clinical information. Begin the work from this document alone.
+
 Complete the form without asking permission and without stopping because information is incomplete. A human reviewer will adjust the answers before signing.`);
 
+    const instructionParagraphs = instructionText.split(/\r?\n/);
+    let instructionSize = 9.2;
+    let instructionLine = instructionSize * 1.31;
+    let instructionLayout = [];
+    const availableInstructionHeight = pageH - 116 - 48;
+
+    function layoutInstructions(size){
+      const lineHeight = size * 1.31;
+      const rows = [];
+      let used = 0;
+      for(const paragraph of instructionParagraphs){
+        const lines = wrapParagraph(paragraph, regular, size, pageW - margin*2);
+        rows.push({lines, paragraph});
+        used += lines.length * lineHeight;
+        used += paragraph.trim() ? 3.2 : 1.2;
+      }
+      return {rows, used, lineHeight};
+    }
+
+    while(instructionSize > 7.4){
+      const trial = layoutInstructions(instructionSize);
+      instructionLayout = trial.rows;
+      instructionLine = trial.lineHeight;
+      if(trial.used <= availableInstructionHeight) break;
+      instructionSize -= .2;
+    }
+
     let iy = pageH - 116;
-    const instructionSize = 9.35, instructionLine = 12.3;
-    for(const paragraph of instructionText.split(/\r?\n/)){
-      const lines = wrapParagraph(paragraph, regular, instructionSize, pageW - margin*2);
-      for(const line of lines){
+    for(const block of instructionLayout){
+      for(const line of block.lines){
         if(line) instructionPage.drawText(line, {x:margin,y:iy,size:instructionSize,font:regular,color:rgb(.06,.08,.12)});
         iy -= instructionLine;
       }
-      iy -= paragraph.trim() ? 3.5 : 1.5;
+      iy -= block.paragraph.trim() ? 3.2 : 1.2;
     }
-    instructionPage.drawText("PAGE 1 - INSTRUCTIONS", {x:margin,y:28,size:8.2,font:bold,color:rgb(.35,.4,.5)});
+    instructionPage.drawText("PAGE 1 - COMPLETE COPILOT PROMPT", {x:margin,y:28,size:8.2,font:bold,color:rgb(.35,.4,.5)});
 
     // PAGES 2+: original form.
     const formBytes = await formFile.arrayBuffer();
@@ -643,7 +596,7 @@ Complete the form without asking permission and without stopping because informa
 
     $("downloadPacketBtn").disabled = false;
     $("openPacketBtn").disabled = false;
-    $("packetStatus").textContent = `Ready: ${packetFilename}. Page 1 contains the Copilot instructions, followed by ${source.getPageCount()} original form page(s), then the supporting chart information.`;
+    $("packetStatus").textContent = `Ready: ${packetFilename}. This single PDF contains the complete Copilot prompt: instructions, ${source.getPageCount()} form page(s), and the supporting chart information.`;
 
     if(options.download) downloadPacket();
     return packetUrl;
@@ -664,11 +617,6 @@ Complete the form without asking permission and without stopping because informa
     window.open(packetUrl,"_blank","noopener");
   }
 
-  async function copyPayload(){
-    const prompt = buildPrompt();
-    try{ await copyText(prompt); toast("Copilot payload copied."); }
-    catch(e){ toast("Clipboard blocked. Select and copy the preview manually."); }
-  }
 
   async function buildAndOpenCopilot(){
     if(isLikelyPhone() && !phoneAllowed()){
@@ -677,15 +625,26 @@ Complete the form without asking permission and without stopping because informa
       toast("Use a computer when possible.");
       return;
     }
-    const prompt = buildPrompt();
+
+    // Open the destination immediately from the user's click so popup blockers do not
+    // mistake the later navigation for an unsolicited window.
+    const copilotWindow = window.open("about:blank", "_blank");
+    if(copilotWindow){
+      try{
+        copilotWindow.document.title = "Preparing Copilot…";
+        copilotWindow.document.body.innerHTML = '<div style="font-family:system-ui;padding:32px;line-height:1.5"><h2>Preparing the one-PDF prompt…</h2><p>The PDF will download, then this page will open Microsoft 365 Copilot.</p></div>';
+      }catch(e){}
+    }
+
     try{
       await buildPacketPdf({download:true});
-      await copyText(prompt);
-      toast("Packet downloaded and payload copied. Opening Copilot…", 3000);
-      speak("The combined PDF packet has downloaded and the Copilot payload is copied. In Copilot, drag in the downloaded PDF, then paste the payload.");
-      setTimeout(() => window.open(COPILOT_URL,"_blank","noopener"),700);
+      toast("One self-contained PDF downloaded. Attach that one file in Copilot.", 3600);
+      speak("The one P D F prompt has downloaded. Attach that single PDF to the Copilot chat. No separate text prompt is needed.");
+      if(copilotWindow) copilotWindow.location.href = COPILOT_URL;
+      else window.open(COPILOT_URL,"_blank","noopener");
     }catch(err){
-      toast(err.message || "Could not build the packet.", 4200);
+      if(copilotWindow) copilotWindow.close();
+      toast(err.message || "Could not build the one-PDF prompt.", 4200);
     }
   }
 
@@ -698,7 +657,7 @@ Complete the form without asking permission and without stopping because informa
     packetUrl = null;
     $("downloadPacketBtn").disabled = true;
     $("openPacketBtn").disabled = true;
-    $("packetStatus").textContent = "Form selected. Build the packet after adding the record material.";
+    $("packetStatus").textContent = "Form selected. Add chart material, then create the one-PDF prompt.";
   }
 
   async function loadPdfFromUrl(options){
@@ -769,18 +728,17 @@ Complete the form without asking permission and without stopping because informa
     noteCount = 0;
     addNote();
     setFormType("FMLA");
-    output.textContent = "Choose a form type, add a PDF, and paste chart material. Then build the payload.";
     packetBytes = null;
     if(packetUrl) URL.revokeObjectURL(packetUrl);
     packetUrl = null;
     $("downloadPacketBtn").disabled = true;
     $("openPacketBtn").disabled = true;
-    $("packetStatus").textContent = "Not built yet. Page 1 will contain the Copilot instructions. The original form will follow, with supporting chart information after the form.";
+    $("packetStatus").textContent = "Not built yet. The finished PDF will be complete and self-instructing.";
     toast("Cleared.");
   }
 
   function talkThrough(){
-    speak("First choose F M L A, G L P one prior authorization, assisted living, or other. Open the suggested information box if you want a checklist. Second, choose a PDF from the computer or load a public direct PDF URL. Third, paste the relevant chart material. Build combined PDF creates one packet with the original form first and the embedded task and supporting information after it. Build packet and open Copilot downloads that PDF, copies the payload, and opens Microsoft 365 Copilot. Drag the packet into Copilot and paste the payload.");
+    speak("First choose F M L A, G L P one prior authorization, assisted living, or other. Open the suggested information box if you want a checklist. Second, choose a PDF from the computer or load a public direct PDF URL. Third, paste the relevant chart material. Create one P D F prompt and open Copilot builds a single self-instructing PDF, downloads it, and opens Microsoft 365 Copilot. Attach that one PDF to the Copilot chat. No additional prompt needs to be pasted.");
   }
 
   $("get365Btn").href = M365_ACTIVATION_URL;
@@ -805,10 +763,8 @@ Complete the form without asking permission and without stopping because informa
   });
   document.querySelectorAll(".typeBtn").forEach(btn => btn.addEventListener("click", () => setFormType(btn.dataset.type, {loadDefault:true})));
   $("addNoteBtn").addEventListener("click", () => addNote());
-  $("seeBtn").addEventListener("click", () => { buildPrompt(); toast("Payload generated."); });
-  $("copyBtn").addEventListener("click", copyPayload);
   $("pdfBtn").addEventListener("click", async () => {
-    try{ await buildPacketPdf({download:false}); toast("Combined PDF built."); }
+    try{ await buildPacketPdf({download:true}); toast("One-PDF prompt built and downloaded."); }
     catch(err){ toast(err.message || "Could not build the PDF.", 4200); }
   });
   $("openCopilotBtn").addEventListener("click", buildAndOpenCopilot);
