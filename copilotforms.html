@@ -1,0 +1,799 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMI Forms — Copilot Form Completion Builder v3</title>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <style>
+    :root{
+      --bg:#f3f4f6; --panel:#ffffff; --accent:#2563eb; --accent2:#1d4ed8;
+      --border:#d1d5db; --text:#111827; --muted:#6b7280; --good:#166534;
+      --warn:#92400e; --shadow:0 10px 25px rgba(15,23,42,.12); --r:16px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:radial-gradient(circle at top left,#dbeafe 0,#f3f4f6 42%,#e5e7eb 100%);
+      color:var(--text);min-height:100vh;padding:16px;
+    }
+    .wrap{max-width:1280px;margin:0 auto}
+    .header,.panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+    .header{padding:16px 18px;position:sticky;top:8px;z-index:10;background:linear-gradient(135deg,#fff,#dbeafe);backdrop-filter:blur(10px)}
+    .htop{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+    .title{font-size:1.18rem;font-weight:950;text-transform:uppercase;letter-spacing:.04em;color:var(--accent2)}
+    .subtitle,.hint,.meta{color:var(--muted);font-size:.86rem;line-height:1.45;margin-top:6px}
+    .actionsTop{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+    .badge{display:inline-flex;gap:6px;align-items:center;padding:5px 10px;border-radius:999px;background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.2);color:var(--accent2);font-weight:900;font-size:.78rem;white-space:nowrap}
+    .dot{width:8px;height:8px;border-radius:999px;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.2)}
+    .layout{margin-top:18px;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:16px;align-items:start}
+    @media(max-width:1000px){.layout{grid-template-columns:1fr}.header{position:static}}
+    .panel{padding:14px;min-width:0}
+    .phead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+    .ptitle{font-weight:900;display:flex;gap:8px;align-items:center}
+    .step{min-width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:var(--accent);color:#fff;font-weight:900}
+    fieldset{border:1px solid var(--border);background:#f9fafb;border-radius:12px;padding:11px;margin-top:10px}
+    legend{padding:0 6px;color:var(--muted);font-size:.77rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+    label{font-size:.86rem;font-weight:850;color:#374151}
+    textarea,input[type="text"],input[type="url"],input[type="file"]{width:100%;margin-top:6px;padding:10px 11px;border:1px solid var(--border);border-radius:10px;font:inherit;background:#fff}
+    textarea{resize:vertical;line-height:1.45;min-height:130px;overflow-wrap:anywhere;max-height:420px;overflow:auto}
+    textarea:focus,input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.18)}
+    .smallArea{min-height:92px}
+    .guideArea{min-height:260px}
+    .guideDisclosure{margin-top:10px;border:1px solid rgba(37,99,235,.28);border-radius:12px;background:#fff;overflow:hidden}
+    .guideDisclosure summary{cursor:pointer;list-style:none;padding:12px 13px;font-weight:900;color:var(--accent2);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .guideDisclosure summary::-webkit-details-marker{display:none}
+    .guideDisclosure summary::after{content:"Open";font-size:.76rem;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:4px 8px;background:#f9fafb}
+    .guideDisclosure[open] summary::after{content:"Close"}
+    .guideBody{padding:0 11px 11px;border-top:1px solid var(--border);background:#f9fafb}
+    .sourceGrid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px}
+    .urlRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+    .urlRow .mini{min-height:43px}
+    .orDivider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:.77rem;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin:2px 0}
+    .orDivider::before,.orDivider::after{content:"";height:1px;background:var(--border);flex:1}
+    @media(max-width:650px){.urlRow{grid-template-columns:1fr}}
+    .formTypes{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .typeBtn{border:1px solid rgba(37,99,235,.32);background:#fff;color:var(--accent2);border-radius:999px;padding:9px 12px;font-weight:900;cursor:pointer}
+    .typeBtn:hover{box-shadow:0 5px 15px rgba(37,99,235,.14)}
+    .typeBtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .noteCard{border:1px solid var(--border);background:#fff;border-radius:14px;padding:10px;margin-top:10px}
+    .noteTop{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+    .noteTitle{font-weight:900;color:#1f2937}
+    .noteActions{display:flex;gap:6px;flex-wrap:wrap}
+    .btnRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .btn,.mini,.ghost{border:none;border-radius:10px;padding:10px 12px;font-weight:900;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;font:inherit;font-weight:900}
+    .btn{flex:1;min-width:165px}
+    .primary,.mini{background:var(--accent);color:#fff}.primary:hover,.mini:hover{background:var(--accent2)}
+    .secondary{background:#e5e7eb;color:var(--text)}.secondary:hover{background:#d1d5db}
+    .ghost{border:1px solid rgba(37,99,235,.35);background:#fff;color:var(--accent2);border-radius:999px;padding:8px 11px;font-size:.88rem}.ghost:hover{box-shadow:0 6px 16px rgba(37,99,235,.18)}
+    .ghost:disabled,.btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+    .out{background:#0f172a;color:#e2e8f0;border-radius:12px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:.81rem;line-height:1.5;min-height:390px;max-height:60vh;overflow:auto;white-space:pre-wrap;word-break:break-word;margin-top:6px}
+    .previewPanel{position:sticky;top:106px;max-height:calc(100vh - 122px);display:flex;flex-direction:column;overflow:hidden;min-width:0}
+    .previewPanel fieldset{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+    @media(max-width:1000px){.previewPanel{position:static;max-height:none}.out{max-height:70vh}}
+    .notice{margin-top:10px;font-size:.82rem;border-radius:10px;padding:9px 11px;line-height:1.45}
+    .notice.safe{color:#065f46;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.35)}
+    .notice.warn{color:#92400e;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.45)}
+    .fileStatus{margin-top:8px;font-size:.83rem;color:var(--muted);font-weight:750}
+    .fileStatus.good{color:var(--good)}
+    .packetBox{margin-top:10px;border:1px dashed rgba(37,99,235,.45);background:#eff6ff;border-radius:12px;padding:11px}
+    .packetTitle{font-weight:900;color:var(--accent2)}
+    .packetActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+    .toast{position:fixed;right:18px;bottom:18px;background:#111827;color:#fff;padding:10px 16px;border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.35);font-weight:900;z-index:9999;max-width:90vw}
+    .count{font-size:.78rem;color:var(--muted);font-weight:800}
+    .inlineGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:700px){.inlineGrid{grid-template-columns:1fr}}
+    .phoneGate{display:none;margin-bottom:14px;background:#fff7ed;border:1px solid rgba(245,158,11,.55);border-radius:16px;box-shadow:var(--shadow);padding:14px;line-height:1.45}.phoneGateTitle{font-weight:900;color:#92400e;font-size:1.02rem}.phoneGate p{margin-top:6px;color:#7c2d12}.phoneGateActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.deviceToggle{font-size:.78rem;color:var(--muted);margin-top:8px}
+    body.phoneMode .phoneGate{display:block}body.phoneMode:not(.allowPhone) .layout{display:none}body.phoneMode.allowPhone .phoneGate{display:block;background:#eff6ff;border-color:rgba(37,99,235,.35)}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <section class="phoneGate" id="phoneGate" aria-live="polite">
+    <div class="phoneGateTitle">Use this from a computer when possible.</div>
+    <p>This tool combines a form PDF with chart notes into one packet PDF. That workflow is much easier on a computer.</p>
+    <div class="phoneGateActions">
+      <button class="mini" id="shareLinkBtn" type="button">📤 Share this link</button>
+      <a class="ghost" id="emailSelfBtn" href="mailto:">✉️ Email link to myself</a>
+      <button class="ghost" id="continuePhoneBtn" type="button">Continue on phone anyway</button>
+    </div>
+    <div class="deviceToggle">Nothing is uploaded by this page. The PDF and chart text remain in the browser until you choose to use Copilot.</div>
+  </section>
+
+  <header class="header">
+    <div class="htop">
+      <div>
+        <div class="title">CMI Forms — Copilot Form Completion Builder</div>
+        <div class="subtitle">
+          Choose the form type, add the PDF, then paste the chart material that can answer it. The combined PDF places the original form first and the supporting information after it.
+          <br><strong>Use only with approved Microsoft 365 Copilot / authorized clinical workflows.</strong>
+        </div>
+        <div class="meta">This local page does not send or save form or chart text by itself.</div>
+      </div>
+      <div class="actionsTop">
+        <a class="ghost" id="get365Btn" href="#" target="_blank" rel="noopener">✅ Get / Activate M365</a>
+        <span class="badge"><span class="dot"></span> Form packet builder</span>
+        <button class="ghost" id="talkBtn" type="button">🔊 Talk it through</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <section class="panel">
+      <div class="phead">
+        <div class="ptitle"><span class="step">1</span> Choose form type</div>
+      </div>
+
+      <fieldset>
+        <legend>Form category</legend>
+        <div class="formTypes" id="formTypes">
+          <button class="typeBtn" type="button" data-type="FMLA">FMLA</button>
+          <button class="typeBtn" type="button" data-type="GLP-1 prior authorization">Prior auth — GLP-1</button>
+          <button class="typeBtn" type="button" data-type="Assisted living">Assisted living</button>
+          <button class="typeBtn" type="button" data-type="Other">Other</button>
+        </div>
+        <div class="hint">The form type changes the embedded Copilot task and the kinds of chart details it looks for.</div>
+        <details class="guideDisclosure" id="guideDisclosure">
+          <summary>Suggested information to include</summary>
+          <div class="guideBody">
+            <div class="hint">Use this as a checklist. You may edit it, add details, or leave headings in place when the chart material will supply the answer.</div>
+            <textarea id="suggestedNotes" class="guideArea" placeholder="Choose a form type to load suggested information."></textarea>
+          </div>
+        </details>
+      </fieldset>
+
+      <div class="phead" style="margin-top:14px">
+        <div class="ptitle"><span class="step">2</span> Add the PDF form</div>
+      </div>
+
+      <fieldset>
+        <legend>Choose a PDF source</legend>
+        <div class="sourceGrid">
+          <div>
+            <label for="formPdf">Upload or choose a PDF from this computer</label>
+            <input id="formPdf" type="file" accept="application/pdf,.pdf" />
+          </div>
+          <div class="orDivider">or</div>
+          <div class="urlRow">
+            <div>
+              <label for="formUrl">Load a public direct PDF URL</label>
+              <input id="formUrl" type="url" inputmode="url" placeholder="https://example.org/form.pdf" />
+            </div>
+            <button class="mini" id="loadUrlBtn" type="button">Load URL</button>
+            <a class="ghost" id="officialFormLink" href="#" target="_blank" rel="noopener" style="display:none">Open official form</a>
+          </div>
+        </div>
+        <div class="fileStatus" id="fileStatus">No form selected.</div>
+        <div class="hint">URL loading works only for a direct PDF link that permits browser access. Login pages, SharePoint viewer links, and sites that block cross-origin requests may require downloading the PDF first.</div>
+      </fieldset>
+
+      <div class="phead" style="margin-top:14px">
+        <div class="ptitle"><span class="step">3</span> Paste chart material</div>
+        <button class="ghost" id="addNoteBtn" type="button">＋ Add another record excerpt</button>
+      </div>
+      <div id="notesBox"></div>
+
+      <fieldset>
+        <legend>Optional instructions</legend>
+        <label for="optionalNotes">Anything else Copilot should do or avoid</label>
+        <textarea id="optionalNotes" class="smallArea" placeholder="e.g., Use the most recent functional assessment; do not imply continuous leave; leave signature/date fields blank; distinguish patient report from clinician judgment."></textarea>
+      </fieldset>
+
+      <div class="btnRow">
+        <button class="btn primary" id="seeBtn" type="button">👁 Build Payload</button>
+        <button class="btn secondary" id="pdfBtn" type="button">📄 Build Combined PDF</button>
+        <button class="btn secondary" id="copyBtn" type="button">📋 Copy Payload</button>
+        <button class="btn secondary" id="openCopilotBtn" type="button">🪟 Build PDF + Open Copilot</button>
+        <button class="btn secondary" id="clearBtn" type="button">🧹 Clear</button>
+      </div>
+    </section>
+
+    <section class="panel previewPanel">
+      <div class="phead">
+        <div class="ptitle">Copilot Payload Preview</div>
+        <button class="mini" id="buildOpenBtn" type="button">Build Packet & Open Copilot</button>
+      </div>
+      <fieldset>
+        <legend>Generated Copilot payload</legend>
+        <div class="out" id="output">Choose a form type, add a PDF, and paste chart material. Then build the payload.</div>
+      </fieldset>
+
+      <div class="packetBox">
+        <div class="packetTitle">Combined packet PDF</div>
+        <div class="meta" id="packetStatus">Not built yet. The packet will contain the original form first, followed by the embedded completion task and supporting record information.</div>
+        <div class="packetActions">
+          <button class="ghost" id="downloadPacketBtn" type="button" disabled>⬇ Download packet</button>
+          <button class="ghost" id="openPacketBtn" type="button" disabled>↗ Open packet PDF</button>
+        </div>
+      </div>
+
+      <div class="notice safe"><b>Output design:</b> Copilot is asked to complete every substantive form field with a clear, definite best answer. Confidence appears only in the separate reviewer recap.</div>
+      <div class="notice warn"><b>Important:</b> The page can build and download the single PDF, copy the payload, and open Copilot. Browser security does not allow it to attach the PDF to Copilot automatically; drag the downloaded packet into the Copilot chat, then paste the copied payload.</div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const COPILOT_URL = "https://www.microsoft365.com/copilot";
+  const M365_ACTIVATION_URL = "https://apps.powerapps.com/play/e/c34e244b-e683-4eef-bb66-67176b581713/a/daf86d65-9ffb-4e95-aaf2-388bbb5304bf?tenantId=8b3dd73e-4e72-4679-b191-56da1588712b&hint=2e699ac1-227b-4779-ac48-f7a1b3ff5631&sourcetime=1743427811944";
+  const HANDBOOK_URL = "https://cmihandbook.com";
+  const SHARE_TITLE = "CMI Form Completion Builder";
+  const SHARE_TEXT = "On your computer, go to cmihandbook.com and choose the form completion tool.";
+  const FMLA_FORM_URL = "https://www.dol.gov/sites/dolgov/files/WHD/legacy/files/WH-380-E.pdf";
+  const DEFAULT_FORM_URLS = { "FMLA": FMLA_FORM_URL };
+
+  const FORM_GUIDANCE = {
+    "FMLA": `FMLA — suggested chart details to include\n\n• Exact condition(s) producing incapacity or need for care:\n• Approximate onset date and expected duration:\n• Whether the condition is chronic, episodic, permanent, or time-limited:\n• Current symptoms and objective functional effects:\n• Essential job functions affected, if known:\n• Continuous leave needed? If yes, likely start/end dates:\n• Intermittent leave needed? Estimate episodes per week/month and hours/days per episode:\n• Reduced schedule needed? Estimate hours and duration:\n• Treatment schedule and frequency of medical visits:\n• Flare pattern, recovery time, and foreseeable absences:\n• Restrictions or accommodations that are medically reasonable:\n• Hospitalizations, procedures, specialist care, or rehabilitation relevant to the request:\n• What is patient-reported versus directly supported by clinician observation:\n• Fields that must remain for clinician judgment, signature, or date:`,
+
+    "GLP-1 prior authorization": `GLP-1 PRIOR AUTHORIZATION — suggested chart details to include\n\n• Requested drug, dose, and indication:\n• Diagnosis: obesity/overweight and/or type 2 diabetes:\n• Current height, weight, BMI, and dates:\n• Weight trend and highest recent weight, if available:\n• Relevant comorbidities (e.g., hypertension, dyslipidemia, OSA, cardiovascular disease, prediabetes/diabetes, osteoarthritis):\n• A1c/glucose history when diabetes is relevant:\n• Lifestyle program attempted, duration, and response:\n• Prior weight-loss medications or diabetes agents tried, failed, not tolerated, or contraindicated:\n• Current medications and clinically important interactions or duplications:\n• Contraindications or risk review documented (e.g., pregnancy, MEN2/medullary thyroid cancer history, pancreatitis/gallbladder concerns when relevant):\n• Expected clinical benefit and treatment goal:\n• Why alternatives are less appropriate:\n• Whether continuation criteria are met, including response and adherence:\n• Insurance-specific missing fields likely to require confirmation:`,
+
+    "Assisted living": `ASSISTED-LIVING / LEVEL-OF-CARE FORM — suggested chart details to include\n\n• Major diagnoses affecting daily function or safety:\n• Baseline cognition, memory, behavior, and decision-making capacity:\n• Mobility: independent, cane, walker, wheelchair, transfers, stairs:\n• Falls history and current fall risk:\n• ADLs: bathing, dressing, toileting, feeding, grooming, transfers:\n• IADLs: medications, finances, transportation, shopping, meals, appointments, communication:\n• Continence and toileting needs:\n• Medication administration or supervision needs:\n• Diet, swallowing, allergy, or nutritional needs:\n• Oxygen, CPAP, glucose checks, injections, wound care, catheter, ostomy, or other nursing needs:\n• Need for cueing, redirection, nighttime checks, or wandering precautions:\n• Recent hospitalizations, rehabilitation stays, or functional decline:\n• Sensory impairment: hearing, vision, communication limitations:\n• Behavioral health or substance-use considerations relevant to placement:\n• Whether patient can self-manage emergencies and call for help:\n• Recommended level of assistance and unresolved safety questions:\n• Signature/date/attestation fields that must remain for clinician completion:`,
+
+    "Other": `OTHER FORM — suggested chart details to include\n\n• Exact purpose of the form and who will read it:\n• Specific question(s) the form is asking the clinician to answer:\n• Relevant diagnosis or medical basis:\n• Dates, measurements, or time period requested:\n• Current symptoms and functional impact:\n• Objective findings that materially affect the answer:\n• Treatments tried and response:\n• Current restrictions, accommodations, services, or equipment needed:\n• Expected duration and prognosis, if the form asks:\n• Important uncertainty or conflicting information:\n• Reasonable best estimate when the chart is incomplete:\n• Fields that require a clinician-only judgment, signature, examination, or date:`
+  };
+
+  const FORM_TASKS = {
+    "FMLA":"Review the entire FMLA form carefully and complete every substantive medical field. Use clear, definite best estimates for frequency, duration, restrictions, incapacity, flare pattern, treatment schedule, and expected course. Leave only signature and formal clinician-attestation fields for human review.",
+    "GLP-1 prior authorization":"Review the entire GLP-1 prior-authorization form carefully and complete every substantive field. Select the strongest reasonable definite answers for diagnoses, eligibility criteria, treatment history, contraindication review, clinical justification, requested medication, and continuation criteria. Leave only signature and formal clinician-attestation fields for human review.",
+    "Assisted living":"Review the entire assisted-living or level-of-care form carefully and complete every substantive field with definite best answers about function, cognition, safety, supervision, medication support, services, equipment, and recommended level of assistance. Leave only signature and formal clinician-attestation fields for human review.",
+    "Other":"Review the entire form carefully and determine what each field is asking. Complete every substantive field with the most reasonable definite answer that can be extracted or inferred from the information appended after the form. Leave only signature and formal clinician-attestation fields for human review."
+  };
+
+  const $ = id => document.getElementById(id);
+  const notesBox = $("notesBox");
+  const output = $("output");
+  let noteCount = 0;
+  let selectedFormType = "FMLA";
+  let formFile = null;
+  let packetBytes = null;
+  let packetUrl = null;
+  let packetFilename = "cmi-form-packet.pdf";
+
+  function toast(msg, ms){
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), ms || 2600);
+  }
+
+  function speak(text){
+    try{
+      if(!("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 1.03;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
+  function copyText(text){
+    if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+    return new Promise((resolve, reject) => {
+      try{
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.focus(); ta.select();
+        document.execCommand("copy");
+        ta.remove(); resolve();
+      }catch(e){ reject(e); }
+    });
+  }
+
+  function shareUrl(){
+    return (location.protocol === "http:" || location.protocol === "https:") ? location.href : HANDBOOK_URL;
+  }
+
+  function updateShareTargets(){
+    const url = shareUrl();
+    const body = `${SHARE_TEXT}\n\n${HANDBOOK_URL}\n\nCurrent page link, if available:\n${url}`;
+    $("emailSelfBtn").href = "mailto:?subject=" + encodeURIComponent(SHARE_TITLE) + "&body=" + encodeURIComponent(body);
+  }
+
+  function isLikelyPhone(){
+    const ua = navigator.userAgent || navigator.vendor || "";
+    const uaPhone = /iPhone|iPod|Windows Phone|webOS|BlackBerry|IEMobile|Opera Mini|Android.*Mobile|Mobile Safari/i.test(ua);
+    const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+    const shortSide = Math.min(window.innerWidth || 9999, window.screen?.width || 9999, window.screen?.height || 9999);
+    const longSide = Math.max(window.innerWidth || 0, window.innerHeight || 0, window.screen?.width || 0, window.screen?.height || 0);
+    return uaPhone || (!!coarse && shortSide <= 820 && longSide <= 1180);
+  }
+
+  function phoneAllowed(){ return sessionStorage.getItem("cmiFormsAllowPhone") === "1"; }
+
+  function applyDeviceMode(){
+    const phone = isLikelyPhone();
+    document.body.classList.toggle("phoneMode", phone);
+    document.body.classList.toggle("allowPhone", phone && phoneAllowed());
+    updateShareTargets();
+  }
+
+  async function shareThisLink(){
+    const url = shareUrl();
+    try{
+      if(navigator.share) await navigator.share({title:SHARE_TITLE,text:SHARE_TEXT,url});
+      else { await copyText(url); toast("Link copied."); }
+    }catch(e){ toast("Share canceled or unavailable."); }
+  }
+
+  function addNote(text){
+    noteCount += 1;
+    const card = document.createElement("div");
+    card.className = "noteCard";
+    card.innerHTML = `
+      <div class="noteTop">
+        <div><div class="noteTitle">Record excerpt ${noteCount}</div><div class="count">Paste a note, discharge summary, medication list, labs, specialist note, or other relevant chart text.</div></div>
+        <div class="noteActions"><button class="ghost removeNoteBtn" type="button">Remove</button></div>
+      </div>
+      <textarea class="noteText" placeholder="Paste relevant chart material here. Raw copied text is fine."></textarea>`;
+    notesBox.appendChild(card);
+    const ta = card.querySelector("textarea");
+    if(text) ta.value = text;
+    card.querySelector(".removeNoteBtn").addEventListener("click", () => {
+      if(notesBox.querySelectorAll(".noteCard").length <= 1){
+        ta.value = "";
+        toast("Cleared the only record excerpt.");
+      }else{
+        card.remove();
+        renumberNotes();
+        toast("Removed record excerpt.");
+      }
+    });
+    renumberNotes();
+  }
+
+  function renumberNotes(){
+    Array.from(notesBox.querySelectorAll(".noteCard")).forEach((card, idx) => {
+      card.querySelector(".noteTitle").textContent = "Record excerpt " + (idx + 1);
+    });
+  }
+
+  function collectNotes(){
+    return Array.from(notesBox.querySelectorAll(".noteText"))
+      .map((ta, idx) => ({idx:idx + 1,text:ta.value.trim()}))
+      .filter(x => x.text);
+  }
+
+  function invalidatePacket(){
+    packetBytes = null;
+    if(packetUrl) URL.revokeObjectURL(packetUrl);
+    packetUrl = null;
+    $("downloadPacketBtn").disabled = true;
+    $("openPacketBtn").disabled = true;
+    if(formFile) $("packetStatus").textContent = "Inputs changed. Rebuild the combined PDF before using it.";
+  }
+
+  function setFormType(type, options){
+    const opts = options || {};
+    selectedFormType = FORM_GUIDANCE[type] ? type : "Other";
+    document.querySelectorAll(".typeBtn").forEach(btn => btn.classList.toggle("active", btn.dataset.type === selectedFormType));
+    $("suggestedNotes").value = FORM_GUIDANCE[selectedFormType];
+
+    const defaultUrl = DEFAULT_FORM_URLS[selectedFormType] || "";
+    const officialLink = $("officialFormLink");
+    if(defaultUrl){
+      $("formUrl").value = defaultUrl;
+      officialLink.href = defaultUrl;
+      officialLink.textContent = "Open official DOL WH-380-E";
+      officialLink.style.display = "inline-flex";
+      if(opts.loadDefault !== false){
+        loadPdfFromUrl({sourceLabel:"Official DOL WH-380-E — loaded from URL"});
+      }
+    }else{
+      officialLink.style.display = "none";
+      officialLink.removeAttribute("href");
+      if(!formFile && $("formUrl").value === FMLA_FORM_URL) $("formUrl").value = "";
+    }
+    invalidatePacket();
+  }
+
+  function embeddedTask(){
+    return FORM_TASKS[selectedFormType] || FORM_TASKS.Other;
+  }
+
+  function buildPrompt(){
+    const guidance = $("suggestedNotes").value.trim();
+    const optional = $("optionalNotes").value.trim();
+    const notes = collectNotes();
+
+    if(!guidance && !notes.length){
+      output.textContent = "Choose a form type or paste chart material first.";
+      toast("Nothing to build yet.");
+      return output.textContent;
+    }
+
+    const prompt = `You are completing a clinical or administrative medical form for a UPMC primary care physician.
+
+PACKET ORDER
+The attached PDF contains:
+1. The original form first.
+2. The embedded form-completion task, form-specific working notes, and chart information after the form.
+
+CORE METHOD
+- First, review the entire form carefully, page by page.
+- Identify every question, field, checkbox, table, date range, frequency, duration, restriction, functional judgment, and requested narrative.
+- Then read all information appended after the form.
+- Extract the most relevant information and map it to the form fields.
+- Complete every substantive field. Do not skip a field merely because the chart wording is indirect or incomplete.
+
+1. COMPLETED FORM ARTIFACT
+- Produce a completed form artifact that follows the original field order, wording, checkboxes, tables, and layout as closely as your tools permit.
+- Prefer editing the actual PDF. If direct PDF editing is unavailable, create an editable document artifact that mirrors every form field in order.
+- Always choose and enter the most reasonable best answer for every substantive field.
+- Use definite language in the form. Do not write “possibly,” “likely,” “appears,” “based on the record,” “inferred,” “uncertain,” “needs confirmation,” or confidence labels inside the form.
+- When an exact number or date is unavailable, supply the most clinically reasonable estimate rather than leaving the field blank.
+- When a yes/no choice is required, select the best answer rather than refusing to choose.
+- When a narrative is required, write a concise, direct statement suitable for the form.
+- Do not cite notes, pages, evidence, sources, or appended material anywhere in the completed form.
+- Do not fabricate a clinician signature, legal attestation, or a physical examination that did not occur. Leave only signature and clinician-attestation fields for the human reviewer. All other substantive fields should be completed.
+
+2. REVIEWER RESPONSE
+After creating the completed form artifact, provide a concise recap for the human reviewer.
+For each important form question, use exactly:
+Question: [plain-language form question]
+Answer entered: [the definite answer placed in the form]
+Confidence: High / Moderate / Low
+
+- Confidence belongs only in this reviewer response, never in the form.
+- Do not cite evidence, notes, pages, sources, or record locations in the recap.
+- Do not narrate reasoning or hedge the answer.
+- The purpose of the recap is to let the human reviewer quickly adjust any answer before signing.
+
+3. ADDITIONAL QUESTIONS FOR REVIEW
+At the end, add a brief section titled “Additional questions for review.”
+- Include only questions that could materially change the completed form.
+- For each question, give a suggested answer in definite language and a confidence level.
+- You may state the general chart area where the reviewer could check it, such as medication list, recent PCP note, discharge summary, specialist note, therapy note, functional assessment, laboratory results, imaging, or patient message.
+- Do not add citations or evidence references.
+
+4. STYLE
+- Be decisive, practical, and concise.
+- Do not provide a chart summary unless a form field requires it.
+- Do not add generic disclaimers.
+- Do not ask permission before completing the form.
+- Do not stop because information is incomplete. Make the best reasonable choice and complete the field.
+
+FORM TYPE
+${selectedFormType}
+
+EMBEDDED FORM-COMPLETION TASK
+${embeddedTask()}
+
+FORM-SPECIFIC WORKING NOTES
+${guidance || "No additional form-specific notes supplied."}
+
+OPTIONAL INSTRUCTIONS
+${optional || "None."}
+
+Now review the form first, extract the answers from the information after it, complete every substantive field with definite best answers, create the completed form artifact, and provide the confidence-tagged reviewer recap.`;
+
+    output.textContent = prompt;
+    return prompt;
+  }
+
+  function sanitizePdfText(text){
+    return String(text || "")
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2013\u2014]/g, "-")
+      .replace(/\u2022/g, "-")
+      .replace(/\u00A0/g, " ")
+      .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "?");
+  }
+
+  function splitLongWord(word, font, size, maxWidth){
+    const parts = [];
+    let current = "";
+    for(const ch of word){
+      const test = current + ch;
+      if(current && font.widthOfTextAtSize(test, size) > maxWidth){
+        parts.push(current);
+        current = ch;
+      }else current = test;
+    }
+    if(current) parts.push(current);
+    return parts;
+  }
+
+  function wrapParagraph(paragraph, font, size, maxWidth){
+    if(!paragraph.trim()) return [""];
+    const rawWords = paragraph.split(/\s+/);
+    const words = [];
+    rawWords.forEach(word => {
+      if(font.widthOfTextAtSize(word, size) > maxWidth) words.push(...splitLongWord(word, font, size, maxWidth));
+      else words.push(word);
+    });
+    const lines = [];
+    let line = "";
+    words.forEach(word => {
+      const test = line ? line + " " + word : word;
+      if(line && font.widthOfTextAtSize(test, size) > maxWidth){
+        lines.push(line);
+        line = word;
+      }else line = test;
+    });
+    if(line) lines.push(line);
+    return lines;
+  }
+
+  async function buildPacketPdf(options){
+    options = options || {};
+    if(!formFile){
+      toast("Choose the form PDF first.", 3200);
+      $("formPdf").focus();
+      throw new Error("No form PDF selected");
+    }
+    if(!window.PDFLib){
+      toast("The PDF engine did not load. Check the internet connection and reopen this page.", 4200);
+      throw new Error("PDFLib unavailable");
+    }
+
+    const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+    const guidance = $("suggestedNotes").value.trim();
+    const optional = $("optionalNotes").value.trim();
+    const notes = collectNotes();
+
+    const coverSections = [
+      {title:"FORM COMPLETION TASK", body:`Form type: ${selectedFormType}\n\n${embeddedTask()}`},
+      {title:"FORM-SPECIFIC WORKING NOTES", body:guidance || "No form-specific working notes supplied."},
+      ...notes.map(n => ({title:`RECORD EXCERPT ${n.idx}`, body:n.text})),
+      {title:"OPTIONAL INSTRUCTIONS", body:optional || "None."},
+      {title:"PACKET INSTRUCTION", body:"The original form is at the beginning of this packet. Review it carefully, then use this appended information to complete every substantive field with a clear, definite best answer. Confidence belongs only in the separate reviewer recap, not in the form. Do not add citations, evidence references, a clinician signature, or a legal attestation."}
+    ];
+
+    const merged = await PDFDocument.create();
+    const regular = await merged.embedFont(StandardFonts.Helvetica);
+    const bold = await merged.embedFont(StandardFonts.HelveticaBold);
+
+    const formBytes = await formFile.arrayBuffer();
+    let source;
+    try{
+      source = await PDFDocument.load(formBytes, {ignoreEncryption:false});
+    }catch(err){
+      throw new Error("The selected PDF could not be opened. It may be encrypted or damaged.");
+    }
+    const copiedPages = await merged.copyPages(source, source.getPageIndices());
+    copiedPages.forEach(p => merged.addPage(p));
+
+    const pageW = 612, pageH = 792, margin = 46;
+    const bodySize = 10.2, lineHeight = 14.2;
+    let page = null, y = 0;
+
+    function addPage(){
+      page = merged.addPage([pageW,pageH]);
+      page.drawText("SUPPORTING INFORMATION FOR FORM COMPLETION", {x:margin,y:pageH-34,size:9,font:bold,color:rgb(.12,.29,.65)});
+      page.drawLine({start:{x:margin,y:pageH-41},end:{x:pageW-margin,y:pageH-41},thickness:.7,color:rgb(.75,.8,.9)});
+      y = pageH - 62;
+    }
+
+    function ensureSpace(height){
+      if(!page || y - height < 44) addPage();
+    }
+
+    addPage();
+    for(const section of coverSections){
+      ensureSpace(38);
+      page.drawText(sanitizePdfText(section.title), {x:margin,y,size:12,font:bold,color:rgb(.08,.18,.36)});
+      y -= 19;
+      const paragraphs = sanitizePdfText(section.body).split(/\r?\n/);
+      for(const paragraph of paragraphs){
+        const lines = wrapParagraph(paragraph, regular, bodySize, pageW - margin*2);
+        for(const line of lines){
+          ensureSpace(lineHeight + 4);
+          if(line) page.drawText(line, {x:margin,y,size:bodySize,font:regular,color:rgb(.08,.1,.15)});
+          y -= lineHeight;
+        }
+      }
+      y -= 10;
+    }
+
+    packetBytes = await merged.save();
+    if(packetUrl) URL.revokeObjectURL(packetUrl);
+    packetUrl = URL.createObjectURL(new Blob([packetBytes], {type:"application/pdf"}));
+    const safeType = selectedFormType.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+    const date = new Date().toISOString().slice(0,10);
+    packetFilename = `cmi-${safeType || "form"}-packet-${date}.pdf`;
+
+    $("downloadPacketBtn").disabled = false;
+    $("openPacketBtn").disabled = false;
+    $("packetStatus").textContent = `Ready: ${packetFilename}. Includes ${source.getPageCount()} original form page(s) first, followed by the embedded completion task and supporting record information.`;
+
+    if(options.download) downloadPacket();
+    return packetUrl;
+  }
+
+  function downloadPacket(){
+    if(!packetUrl){ toast("Build the packet first."); return; }
+    const a = document.createElement("a");
+    a.href = packetUrl;
+    a.download = packetFilename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function openPacket(){
+    if(!packetUrl){ toast("Build the packet first."); return; }
+    window.open(packetUrl,"_blank","noopener");
+  }
+
+  async function copyPayload(){
+    const prompt = buildPrompt();
+    try{ await copyText(prompt); toast("Copilot payload copied."); }
+    catch(e){ toast("Clipboard blocked. Select and copy the preview manually."); }
+  }
+
+  async function buildAndOpenCopilot(){
+    if(isLikelyPhone() && !phoneAllowed()){
+      sessionStorage.removeItem("cmiFormsAllowPhone");
+      applyDeviceMode();
+      toast("Use a computer when possible.");
+      return;
+    }
+    const prompt = buildPrompt();
+    try{
+      await buildPacketPdf({download:true});
+      await copyText(prompt);
+      toast("Packet downloaded and payload copied. Opening Copilot…", 3000);
+      speak("The combined PDF packet has downloaded and the Copilot payload is copied. In Copilot, drag in the downloaded PDF, then paste the payload.");
+      setTimeout(() => window.open(COPILOT_URL,"_blank","noopener"),700);
+    }catch(err){
+      toast(err.message || "Could not build the packet.", 4200);
+    }
+  }
+
+  function setLoadedForm(file, sourceLabel){
+    formFile = file;
+    $("fileStatus").textContent = `${sourceLabel || file.name} — ${(file.size/1024/1024).toFixed(2)} MB`;
+    $("fileStatus").classList.add("good");
+    packetBytes = null;
+    if(packetUrl) URL.revokeObjectURL(packetUrl);
+    packetUrl = null;
+    $("downloadPacketBtn").disabled = true;
+    $("openPacketBtn").disabled = true;
+    $("packetStatus").textContent = "Form selected. Build the packet after adding the record material.";
+  }
+
+  async function loadPdfFromUrl(options){
+    const opts = options || {};
+    const previousForm = formFile;
+    const previousStatus = $("fileStatus").textContent;
+    const previousWasGood = $("fileStatus").classList.contains("good");
+    const raw = $("formUrl").value.trim();
+    if(!raw){
+      toast("Paste a direct PDF URL first.");
+      $("formUrl").focus();
+      return;
+    }
+    let url;
+    try{
+      url = new URL(raw);
+      if(!/^https?:$/.test(url.protocol)) throw new Error("Only HTTP or HTTPS URLs are supported.");
+    }catch(err){
+      toast(err.message || "Enter a valid PDF URL.", 3600);
+      return;
+    }
+
+    const btn = $("loadUrlBtn");
+    btn.disabled = true;
+    btn.textContent = "Loading…";
+    $("fileStatus").textContent = "Trying to download the PDF from the URL…";
+    $("fileStatus").classList.remove("good");
+    try{
+      const response = await fetch(url.href, {method:"GET", mode:"cors", credentials:"omit", redirect:"follow"});
+      if(!response.ok) throw new Error(`The server returned ${response.status}.`);
+      const blob = await response.blob();
+      const type = (blob.type || response.headers.get("content-type") || "").toLowerCase();
+      const looksPdf = type.includes("application/pdf") || /\.pdf(?:$|[?#])/i.test(url.href);
+      if(!looksPdf) throw new Error("The URL did not return a PDF file.");
+      if(blob.size < 100) throw new Error("The downloaded PDF appears empty.");
+      const signature = await blob.slice(0, 5).text();
+      if(signature !== "%PDF-") throw new Error("The link returned a web page or viewer instead of the PDF itself.");
+      const nameFromPath = decodeURIComponent(url.pathname.split("/").pop() || "form.pdf");
+      const filename = /\.pdf$/i.test(nameFromPath) ? nameFromPath : "form-from-url.pdf";
+      const file = new File([blob], filename, {type:"application/pdf", lastModified:Date.now()});
+      $("formPdf").value = "";
+      setLoadedForm(file, opts.sourceLabel || `${filename} — loaded from URL`);
+      toast("PDF loaded from URL.");
+    }catch(err){
+      formFile = previousForm;
+      if(previousForm){
+        $("fileStatus").textContent = previousStatus;
+        $("fileStatus").classList.toggle("good", previousWasGood);
+      }else{
+        $("fileStatus").textContent = "Could not load that URL. The site may require login, return a viewer page, or block browser downloads. Download the PDF manually and choose it above.";
+        $("fileStatus").classList.remove("good");
+      }
+      toast(err.message || "Could not load the PDF URL.", 5200);
+    }finally{
+      btn.disabled = false;
+      btn.textContent = "Load URL";
+    }
+  }
+
+  function clearAll(){
+    $("formPdf").value = "";
+    $("formUrl").value = "";
+    formFile = null;
+    $("fileStatus").textContent = "No form selected.";
+    $("fileStatus").classList.remove("good");
+    $("optionalNotes").value = "";
+    notesBox.innerHTML = "";
+    noteCount = 0;
+    addNote();
+    setFormType("FMLA");
+    output.textContent = "Choose a form type, add a PDF, and paste chart material. Then build the payload.";
+    packetBytes = null;
+    if(packetUrl) URL.revokeObjectURL(packetUrl);
+    packetUrl = null;
+    $("downloadPacketBtn").disabled = true;
+    $("openPacketBtn").disabled = true;
+    $("packetStatus").textContent = "Not built yet. The packet will contain the original form first, followed by the embedded completion task and supporting record information.";
+    toast("Cleared.");
+  }
+
+  function talkThrough(){
+    speak("First choose F M L A, G L P one prior authorization, assisted living, or other. Open the suggested information box if you want a checklist. Second, choose a PDF from the computer or load a public direct PDF URL. Third, paste the relevant chart material. Build combined PDF creates one packet with the original form first and the embedded task and supporting information after it. Build packet and open Copilot downloads that PDF, copies the payload, and opens Microsoft 365 Copilot. Drag the packet into Copilot and paste the payload.");
+  }
+
+  $("get365Btn").href = M365_ACTIVATION_URL;
+  $("formPdf").addEventListener("change", ev => {
+    const file = ev.target.files && ev.target.files[0];
+    if(!file){ formFile = null; return; }
+    if(file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)){
+      ev.target.value = "";
+      formFile = null;
+      $("fileStatus").textContent = "Please choose a PDF file.";
+      $("fileStatus").classList.remove("good");
+      toast("The form must be a PDF.");
+      return;
+    }
+    $("formUrl").value = "";
+    setLoadedForm(file, file.name);
+  });
+
+  $("loadUrlBtn").addEventListener("click", loadPdfFromUrl);
+  $("formUrl").addEventListener("keydown", ev => {
+    if(ev.key === "Enter"){ ev.preventDefault(); loadPdfFromUrl(); }
+  });
+  document.querySelectorAll(".typeBtn").forEach(btn => btn.addEventListener("click", () => setFormType(btn.dataset.type, {loadDefault:true})));
+  $("addNoteBtn").addEventListener("click", () => addNote());
+  $("seeBtn").addEventListener("click", () => { buildPrompt(); toast("Payload generated."); });
+  $("copyBtn").addEventListener("click", copyPayload);
+  $("pdfBtn").addEventListener("click", async () => {
+    try{ await buildPacketPdf({download:false}); toast("Combined PDF built."); }
+    catch(err){ toast(err.message || "Could not build the PDF.", 4200); }
+  });
+  $("openCopilotBtn").addEventListener("click", buildAndOpenCopilot);
+  $("buildOpenBtn").addEventListener("click", buildAndOpenCopilot);
+  $("downloadPacketBtn").addEventListener("click", downloadPacket);
+  $("openPacketBtn").addEventListener("click", openPacket);
+  $("clearBtn").addEventListener("click", clearAll);
+  $("talkBtn").addEventListener("click", talkThrough);
+  $("shareLinkBtn").addEventListener("click", shareThisLink);
+  $("continuePhoneBtn").addEventListener("click", () => {
+    sessionStorage.setItem("cmiFormsAllowPhone","1");
+    applyDeviceMode();
+    toast("Phone mode enabled for this session.");
+  });
+  window.addEventListener("resize", applyDeviceMode);
+  window.addEventListener("orientationchange", () => setTimeout(applyDeviceMode,250));
+  ["suggestedNotes","optionalNotes"].forEach(id => {
+    $(id).addEventListener("input", invalidatePacket);
+  });
+  notesBox.addEventListener("input", invalidatePacket);
+
+  addNote();
+  setFormType("FMLA", {loadDefault:true});
+  applyDeviceMode();
+})();
+</script>
+</body>
+</html>
