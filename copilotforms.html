@@ -106,7 +106,7 @@
       <div>
         <div class="title">CMI Forms — Copilot Form Completion Builder</div>
         <div class="subtitle">
-          Choose the form type, add the PDF, then paste the chart material that can answer it. The combined PDF places the original form first and the supporting information after it.
+          Choose the form type, add the PDF, then paste the chart material that can answer it. The combined PDF begins with a dedicated Copilot instruction page, followed by the original form and then the supporting chart information.
           <br><strong>Use only with approved Microsoft 365 Copilot / authorized clinical workflows.</strong>
         </div>
         <div class="meta">This local page does not send or save form or chart text by itself.</div>
@@ -201,7 +201,7 @@
 
       <div class="packetBox">
         <div class="packetTitle">Combined packet PDF</div>
-        <div class="meta" id="packetStatus">Not built yet. The packet will contain the original form first, followed by the embedded completion task and supporting record information.</div>
+        <div class="meta" id="packetStatus">Not built yet. Page 1 will contain the Copilot instructions. The original form will follow, with supporting chart information after the form.</div>
         <div class="packetActions">
           <button class="ghost" id="downloadPacketBtn" type="button" disabled>⬇ Download packet</button>
           <button class="ghost" id="openPacketBtn" type="button" disabled>↗ Open packet PDF</button>
@@ -413,13 +413,15 @@
 
 PACKET ORDER
 The attached PDF contains:
-1. The original form first.
-2. The embedded form-completion task, form-specific working notes, and chart information after the form.
+1. A dedicated instruction sheet on page 1.
+2. The original blank form immediately after the instruction sheet.
+3. Form-specific working notes and chart information after the final form page.
 
 CORE METHOD
-- First, review the entire form carefully, page by page.
+- Read and follow the instruction sheet on page 1.
+- Then review the entire form carefully, page by page.
 - Identify every question, field, checkbox, table, date range, frequency, duration, restriction, functional judgment, and requested narrative.
-- Then read all information appended after the form.
+- After reviewing the complete form, read all information appended after the final form page.
 - Extract the most relevant information and map it to the form fields.
 - Complete every substantive field. Do not skip a field merely because the chart wording is indirect or incomplete.
 
@@ -472,7 +474,7 @@ ${guidance || "No additional form-specific notes supplied."}
 OPTIONAL INSTRUCTIONS
 ${optional || "None."}
 
-Now review the form first, extract the answers from the information after it, complete every substantive field with definite best answers, create the completed form artifact, and provide the confidence-tagged reviewer recap.`;
+Follow page 1 of the packet, review the complete form, extract the answers from the information after the form, complete every substantive field with definite best answers, create the completed form artifact, and provide the confidence-tagged reviewer recap.`;
 
     output.textContent = prompt;
     return prompt;
@@ -540,18 +542,56 @@ Now review the form first, extract the answers from the information after it, co
     const optional = $("optionalNotes").value.trim();
     const notes = collectNotes();
 
-    const coverSections = [
-      {title:"FORM COMPLETION TASK", body:`Form type: ${selectedFormType}\n\n${embeddedTask()}`},
+    const supportSections = [
       {title:"FORM-SPECIFIC WORKING NOTES", body:guidance || "No form-specific working notes supplied."},
       ...notes.map(n => ({title:`RECORD EXCERPT ${n.idx}`, body:n.text})),
-      {title:"OPTIONAL INSTRUCTIONS", body:optional || "None."},
-      {title:"PACKET INSTRUCTION", body:"The original form is at the beginning of this packet. Review it carefully, then use this appended information to complete every substantive field with a clear, definite best answer. Confidence belongs only in the separate reviewer recap, not in the form. Do not add citations, evidence references, a clinician signature, or a legal attestation."}
+      {title:"OPTIONAL INSTRUCTIONS", body:optional || "None."}
     ];
 
     const merged = await PDFDocument.create();
     const regular = await merged.embedFont(StandardFonts.Helvetica);
     const bold = await merged.embedFont(StandardFonts.HelveticaBold);
 
+    const pageW = 612, pageH = 792, margin = 46;
+
+    // PAGE 1: dedicated instructions for Copilot. Keep this to one page.
+    const instructionPage = merged.addPage([pageW,pageH]);
+    instructionPage.drawText("INSTRUCTIONS FOR COMPLETING THE ATTACHED FORM", {x:margin,y:pageH-52,size:16,font:bold,color:rgb(.08,.18,.36)});
+    instructionPage.drawText(`Form type: ${sanitizePdfText(selectedFormType)}`, {x:margin,y:pageH-78,size:10.5,font:bold,color:rgb(.12,.29,.65)});
+    instructionPage.drawLine({start:{x:margin,y:pageH-90},end:{x:pageW-margin,y:pageH-90},thickness:1,color:rgb(.72,.79,.9)});
+
+    const instructionText = sanitizePdfText(`
+Review the entire blank form carefully before answering it. The form begins on the next page. Supporting chart information follows the final form page.
+
+${embeddedTask()}
+
+COMPLETION RULES
+- Identify every question, checkbox, table, date, frequency, duration, restriction, functional judgment, and narrative field.
+- Read all chart information after the form and map it to the appropriate form fields.
+- Fill every substantive field. Always enter the most reasonable best answer, even when the chart is indirect or incomplete.
+- Use clear, definite language in the completed form. Do not hedge, show confidence levels, cite evidence, mention notes or pages, or explain reasoning inside the form.
+- Estimate missing dates, numbers, frequencies, durations, restrictions, and yes/no choices rather than leaving substantive fields blank.
+- Preserve the original form order, wording, checkboxes, tables, and layout as closely as possible. Prefer completing the PDF itself; otherwise create an editable artifact that mirrors every field in order.
+- Do not create a clinician signature, legal attestation, or examination that did not occur. Leave only signature and formal attestation fields for human completion.
+
+AFTER COMPLETING THE FORM
+Provide a concise reviewer recap outside the form. For each important item state: Question; Answer entered; Confidence: High, Moderate, or Low. Do not cite evidence in the recap. End with only the additional questions that could materially change the form, including a suggested answer, confidence, and the general chart area where a reviewer could check it.
+
+Complete the form without asking permission and without stopping because information is incomplete. A human reviewer will adjust the answers before signing.`);
+
+    let iy = pageH - 116;
+    const instructionSize = 9.35, instructionLine = 12.3;
+    for(const paragraph of instructionText.split(/\r?\n/)){
+      const lines = wrapParagraph(paragraph, regular, instructionSize, pageW - margin*2);
+      for(const line of lines){
+        if(line) instructionPage.drawText(line, {x:margin,y:iy,size:instructionSize,font:regular,color:rgb(.06,.08,.12)});
+        iy -= instructionLine;
+      }
+      iy -= paragraph.trim() ? 3.5 : 1.5;
+    }
+    instructionPage.drawText("PAGE 1 - INSTRUCTIONS", {x:margin,y:28,size:8.2,font:bold,color:rgb(.35,.4,.5)});
+
+    // PAGES 2+: original form.
     const formBytes = await formFile.arrayBuffer();
     let source;
     try{
@@ -562,13 +602,13 @@ Now review the form first, extract the answers from the information after it, co
     const copiedPages = await merged.copyPages(source, source.getPageIndices());
     copiedPages.forEach(p => merged.addPage(p));
 
-    const pageW = 612, pageH = 792, margin = 46;
+    // Supporting information follows the final form page.
     const bodySize = 10.2, lineHeight = 14.2;
     let page = null, y = 0;
 
     function addPage(){
       page = merged.addPage([pageW,pageH]);
-      page.drawText("SUPPORTING INFORMATION FOR FORM COMPLETION", {x:margin,y:pageH-34,size:9,font:bold,color:rgb(.12,.29,.65)});
+      page.drawText("SUPPORTING CHART INFORMATION", {x:margin,y:pageH-34,size:9,font:bold,color:rgb(.12,.29,.65)});
       page.drawLine({start:{x:margin,y:pageH-41},end:{x:pageW-margin,y:pageH-41},thickness:.7,color:rgb(.75,.8,.9)});
       y = pageH - 62;
     }
@@ -578,7 +618,7 @@ Now review the form first, extract the answers from the information after it, co
     }
 
     addPage();
-    for(const section of coverSections){
+    for(const section of supportSections){
       ensureSpace(38);
       page.drawText(sanitizePdfText(section.title), {x:margin,y,size:12,font:bold,color:rgb(.08,.18,.36)});
       y -= 19;
@@ -603,7 +643,7 @@ Now review the form first, extract the answers from the information after it, co
 
     $("downloadPacketBtn").disabled = false;
     $("openPacketBtn").disabled = false;
-    $("packetStatus").textContent = `Ready: ${packetFilename}. Includes ${source.getPageCount()} original form page(s) first, followed by the embedded completion task and supporting record information.`;
+    $("packetStatus").textContent = `Ready: ${packetFilename}. Page 1 contains the Copilot instructions, followed by ${source.getPageCount()} original form page(s), then the supporting chart information.`;
 
     if(options.download) downloadPacket();
     return packetUrl;
@@ -735,7 +775,7 @@ Now review the form first, extract the answers from the information after it, co
     packetUrl = null;
     $("downloadPacketBtn").disabled = true;
     $("openPacketBtn").disabled = true;
-    $("packetStatus").textContent = "Not built yet. The packet will contain the original form first, followed by the embedded completion task and supporting record information.";
+    $("packetStatus").textContent = "Not built yet. Page 1 will contain the Copilot instructions. The original form will follow, with supporting chart information after the form.";
     toast("Cleared.");
   }
 
