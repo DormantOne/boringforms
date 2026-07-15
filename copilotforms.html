@@ -223,7 +223,7 @@
   const HANDBOOK_URL = "https://cmihandbook.com";
   const SHARE_TITLE = "CMI Form Completion Builder";
   const SHARE_TEXT = "On your computer, go to cmihandbook.com and choose the form completion tool.";
-  const FMLA_FORM_URL = "https://www.dol.gov/sites/dolgov/files/WHD/legacy/files/WH-380-E.pdf";
+  const FMLA_FORM_URL = "https://dormantone.github.io/boringforms/WH-380-E.pdf";
   const DEFAULT_FORM_URLS = { "FMLA": FMLA_FORM_URL };
 
   const FORM_GUIDANCE = {
@@ -381,10 +381,10 @@
     if(defaultUrl){
       $("formUrl").value = defaultUrl;
       officialLink.href = defaultUrl;
-      officialLink.textContent = "Open official DOL WH-380-E";
+      officialLink.textContent = "Open hosted WH-380-E PDF";
       officialLink.style.display = "inline-flex";
       if(opts.loadDefault !== false){
-        loadPdfFromUrl({sourceLabel:"Official DOL WH-380-E — loaded from URL"});
+        loadPdfFromUrl({sourceLabel:"WH-380-E — loaded from DormantOne GitHub Pages"});
       }
     }else{
       officialLink.style.display = "none";
@@ -708,7 +708,7 @@ Now review the form first, extract the answers from the information after it, co
         $("fileStatus").textContent = previousStatus;
         $("fileStatus").classList.toggle("good", previousWasGood);
       }else{
-        $("fileStatus").textContent = "Could not load that URL. The site may require login, return a viewer page, or block browser downloads. Download the PDF manually and choose it above.";
+        $("fileStatus").textContent = "Could not load that URL. The site may require login, return a viewer page, or block browser downloads. For the FMLA default, confirm the GitHub Pages file is publicly accessible; otherwise download the PDF manually and choose it above.";
         $("fileStatus").classList.remove("good");
       }
       toast(err.message || "Could not load the PDF URL.", 5200);
