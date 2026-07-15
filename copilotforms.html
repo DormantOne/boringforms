@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CMI Forms — One-PDF Copilot Form Builder</title>
+  <title>CMI Forms — Copy-PDF Copilot Form Builder</title>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
     :root{
@@ -92,7 +92,7 @@
 <div class="wrap">
   <section class="phoneGate" id="phoneGate" aria-live="polite">
     <div class="phoneGateTitle">Use this from a computer when possible.</div>
-    <p>This tool creates one self-instructing PDF containing the instructions, form, and chart notes. Attach that single PDF to Copilot.</p>
+    <p>This tool creates one self-instructing PDF, copies the PDF file to the clipboard when supported, and opens Copilot. Press paste once in the Copilot chat.</p>
     <div class="phoneGateActions">
       <button class="mini" id="shareLinkBtn" type="button">📤 Share this link</button>
       <a class="ghost" id="emailSelfBtn" href="mailto:">✉️ Email link to myself</a>
@@ -104,10 +104,10 @@
   <header class="header">
     <div class="htop">
       <div>
-        <div class="title">CMI Forms — One-PDF Form Completion Builder</div>
+        <div class="title">CMI Forms — Copy-PDF Form Completion Builder</div>
         <div class="subtitle">
-          Choose the form type, add the PDF, and paste the chart material. One click creates a self-contained PDF containing the Copilot instructions, the blank form, and the clinical information.
-          <br><strong>Attach that one PDF to Copilot. No separate prompt needs to be copied or pasted.</strong>
+          Choose the form type, add the PDF, and paste the chart material. One click creates the self-contained PDF, copies that PDF file to the clipboard, and opens Copilot.
+          <br><strong>In the Copilot chat box, press Ctrl+V once to paste the PDF. No separate text prompt is needed.</strong>
           <br><strong>Use only with approved Microsoft 365 Copilot / authorized clinical workflows.</strong>
         </div>
         <div class="meta">This local page does not send or save form or chart text by itself.</div>
@@ -182,41 +182,42 @@
       </fieldset>
 
       <div class="btnRow">
-        <button class="btn primary" id="openCopilotBtn" type="button">📎 Create One-PDF Prompt & Open Copilot</button>
-        <button class="btn secondary" id="pdfBtn" type="button">📄 Build PDF Only</button>
+        <button class="btn primary" id="openCopilotBtn" type="button">📋 Copy PDF & Open Copilot</button>
+        <button class="btn secondary" id="pdfBtn" type="button">📄 Download PDF Fallback</button>
         <button class="btn secondary" id="clearBtn" type="button">🧹 Clear</button>
       </div>
     </section>
 
     <section class="panel previewPanel">
       <div class="phead">
-        <div class="ptitle">Single-file Copilot workflow</div>
-        <button class="mini" id="buildOpenBtn" type="button">Create PDF & Open Copilot</button>
+        <div class="ptitle">Clipboard-to-Copilot workflow</div>
+        <button class="mini" id="buildOpenBtn" type="button">Copy PDF & Open Copilot</button>
       </div>
 
       <fieldset>
-        <legend>Only one item goes into the Copilot prompt</legend>
-        <div class="notice safe" style="margin-top:0"><b>The generated PDF is the prompt.</b> It contains everything Copilot needs:</div>
+        <legend>One copied PDF goes into the Copilot prompt</legend>
+        <div class="notice safe" style="margin-top:0"><b>The generated PDF is the prompt.</b> The button copies that PDF file to the clipboard and opens Copilot:</div>
         <div class="out" id="packetOutline">PAGE 1 — Instructions to Copilot
 
 PAGES 2+ — Original blank form
 
 FINAL PAGES — Form-specific guidance and pasted chart material
 
-COPILOT ACTION — Attach this single PDF. Do not paste a second text prompt.</div>
+COPILOT ACTION — Click “Copy PDF & Open Copilot,” then press Ctrl+V once in the Copilot chat box.</div>
       </fieldset>
 
       <div class="packetBox">
-        <div class="packetTitle">One-PDF prompt</div>
-        <div class="meta" id="packetStatus">Not built yet. The finished PDF will be complete and self-instructing.</div>
+        <div class="packetTitle">Clipboard PDF prompt</div>
+        <div class="meta" id="packetStatus">Not built yet. The finished PDF will be complete and self-instructing, then copied to the clipboard when the browser permits PDF clipboard data.</div>
         <div class="packetActions">
-          <button class="ghost" id="downloadPacketBtn" type="button" disabled>⬇ Download PDF again</button>
+          <button class="ghost" id="copyPacketBtn" type="button" disabled>📋 Copy PDF again</button>
+          <button class="ghost" id="downloadPacketBtn" type="button" disabled>⬇ Download PDF fallback</button>
           <button class="ghost" id="openPacketBtn" type="button" disabled>↗ Review PDF</button>
         </div>
       </div>
 
       <div class="notice safe"><b>Form output:</b> clear and definite best answers in the form; confidence appears only in the separate reviewer recap.</div>
-      <div class="notice warn"><b>In Copilot:</b> attach or drag in the one downloaded PDF. Nothing else needs to be pasted. Browsers cannot securely attach a local file to the Copilot website automatically.</div>
+      <div class="notice warn"><b>In Copilot:</b> press <b>Ctrl+V</b> once in the chat box. Native PDF clipboard support varies by browser. This works best from an HTTPS-hosted page in current desktop Chrome or Edge. If the PDF does not appear, use the automatically downloaded fallback file.</div>
     </section>
   </div>
 </div>
@@ -371,6 +372,7 @@ COPILOT ACTION — Attach this single PDF. Do not paste a second text prompt.</d
     packetBytes = null;
     if(packetUrl) URL.revokeObjectURL(packetUrl);
     packetUrl = null;
+    $("copyPacketBtn").disabled = true;
     $("downloadPacketBtn").disabled = true;
     $("openPacketBtn").disabled = true;
     if(formFile) $("packetStatus").textContent = "Inputs changed. Rebuild the one-PDF prompt before using it.";
@@ -594,9 +596,10 @@ Complete the form without asking permission and without stopping because informa
     const date = new Date().toISOString().slice(0,10);
     packetFilename = `cmi-${safeType || "form"}-packet-${date}.pdf`;
 
+    $("copyPacketBtn").disabled = false;
     $("downloadPacketBtn").disabled = false;
     $("openPacketBtn").disabled = false;
-    $("packetStatus").textContent = `Ready: ${packetFilename}. This single PDF contains the complete Copilot prompt: instructions, ${source.getPageCount()} form page(s), and the supporting chart information.`;
+    $("packetStatus").textContent = `Ready: ${packetFilename}. This PDF contains the complete prompt: instructions, ${source.getPageCount()} form page(s), and supporting chart information. Use Copy PDF again or the main Copy PDF & Open Copilot button.`;
 
     if(options.download) downloadPacket();
     return packetUrl;
@@ -618,7 +621,50 @@ Complete the form without asking permission and without stopping because informa
   }
 
 
-  async function buildAndOpenCopilot(){
+  function clipboardPdfMime(){
+    if(typeof ClipboardItem === "undefined") return null;
+    try{
+      if(typeof ClipboardItem.supports === "function" && ClipboardItem.supports("application/pdf")) return "application/pdf";
+    }catch(e){}
+    // Chromium can store arbitrary bytes as a web custom clipboard format. Copilot may
+    // or may not recognize this as a pasted file, so a download fallback remains available.
+    try{
+      if(typeof ClipboardItem.supports === "function" && ClipboardItem.supports("web application/pdf")) return "web application/pdf";
+    }catch(e){}
+    return null;
+  }
+
+  function makeClipboardItem(mime, filePromise){
+    const data = { [mime]: filePromise };
+    try{
+      return new ClipboardItem(data, {presentationStyle:"attachment"});
+    }catch(e){
+      return new ClipboardItem(data);
+    }
+  }
+
+  async function copyExistingPacketToClipboard(){
+    if(!packetBytes) await buildPacketPdf({download:false});
+    if(!window.isSecureContext || !navigator.clipboard || !navigator.clipboard.write || typeof ClipboardItem === "undefined"){
+      downloadPacket();
+      throw new Error("This page cannot copy PDF files from the current browser context. The PDF fallback was downloaded instead. Host the page over HTTPS and use current desktop Chrome or Edge.");
+    }
+    const mime = clipboardPdfMime();
+    if(!mime){
+      downloadPacket();
+      throw new Error("This browser does not advertise PDF clipboard support. The PDF fallback was downloaded instead.");
+    }
+    const file = new File([packetBytes], packetFilename, {type:"application/pdf", lastModified:Date.now()});
+    await navigator.clipboard.write([makeClipboardItem(mime, file)]);
+    const custom = mime.startsWith("web ");
+    $("packetStatus").textContent = custom
+      ? `Copied ${packetFilename} using Chromium's custom PDF clipboard format. Press Ctrl+V in Copilot. If Copilot does not recognize it as a file, use the download fallback.`
+      : `Copied ${packetFilename} as a PDF file. Press Ctrl+V once in the Copilot chat box.`;
+    toast(custom ? "PDF copied in compatibility mode. Paste in Copilot; fallback download remains available." : "PDF file copied. Press Ctrl+V once in Copilot.", 4800);
+    return {mime, custom};
+  }
+
+  async function buildCopyAndOpenCopilot(){
     if(isLikelyPhone() && !phoneAllowed()){
       sessionStorage.removeItem("cmiFormsAllowPhone");
       applyDeviceMode();
@@ -626,25 +672,56 @@ Complete the form without asking permission and without stopping because informa
       return;
     }
 
-    // Open the destination immediately from the user's click so popup blockers do not
-    // mistake the later navigation for an unsolicited window.
-    const copilotWindow = window.open("about:blank", "_blank");
-    if(copilotWindow){
-      try{
-        copilotWindow.document.title = "Preparing Copilot…";
-        copilotWindow.document.body.innerHTML = '<div style="font-family:system-ui;padding:32px;line-height:1.5"><h2>Preparing the one-PDF prompt…</h2><p>The PDF will download, then this page will open Microsoft 365 Copilot.</p></div>';
-      }catch(e){}
+    if(!formFile){
+      toast("Choose the form PDF first.", 3200);
+      $("formPdf").focus();
+      return;
     }
 
+    let copilotWindow = null;
     try{
-      await buildPacketPdf({download:true});
-      toast("One self-contained PDF downloaded. Attach that one file in Copilot.", 3600);
-      speak("The one P D F prompt has downloaded. Attach that single PDF to the Copilot chat. No separate text prompt is needed.");
-      if(copilotWindow) copilotWindow.location.href = COPILOT_URL;
-      else window.open(COPILOT_URL,"_blank","noopener");
+      if(window.isSecureContext && navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem !== "undefined"){
+        const mime = clipboardPdfMime();
+        if(mime){
+          // Invoke clipboard.write during the original click. The promised File is created
+          // after the PDF packet finishes building, preserving the user-activation pathway.
+          const filePromise = buildPacketPdf({download:false}).then(() =>
+            new File([packetBytes], packetFilename, {type:"application/pdf", lastModified:Date.now()})
+          );
+          const writePromise = navigator.clipboard.write([makeClipboardItem(mime, filePromise)]);
+          copilotWindow = window.open("about:blank", "_blank");
+          if(copilotWindow){
+            try{
+              copilotWindow.document.title = "Opening Copilot…";
+              copilotWindow.document.body.innerHTML = '<div style="font-family:system-ui;padding:32px;line-height:1.5"><h2>Preparing the PDF clipboard…</h2><p>When Copilot opens, click the chat box and press <b>Ctrl+V</b> once.</p></div>';
+            }catch(e){}
+          }
+          await writePromise;
+          const custom = mime.startsWith("web ");
+          $("packetStatus").textContent = custom
+            ? `Copied ${packetFilename} using Chromium's custom PDF clipboard format. Press Ctrl+V in Copilot. If no file appears, use Download PDF fallback.`
+            : `Copied ${packetFilename} as a PDF file. Press Ctrl+V once in Copilot.`;
+          toast(custom ? "PDF copied in compatibility mode. Press Ctrl+V in Copilot." : "PDF copied. Press Ctrl+V once in Copilot.", 5000);
+          speak("The P D F is on the clipboard. In the Copilot chat box, press Control V once.");
+          if(copilotWindow) copilotWindow.location.href = COPILOT_URL;
+          else window.open(COPILOT_URL,"_blank","noopener");
+          return;
+        }
+      }
+      throw new Error("Native PDF clipboard support is unavailable in this browser context.");
     }catch(err){
       if(copilotWindow) copilotWindow.close();
-      toast(err.message || "Could not build the one-PDF prompt.", 4200);
+      try{
+        if(!packetBytes) await buildPacketPdf({download:false});
+        downloadPacket();
+      }catch(buildErr){
+        toast(buildErr.message || "Could not build the PDF.", 4800);
+        return;
+      }
+      toast("The browser could not copy the PDF file. A fallback PDF was downloaded; Copilot is opening.", 5600);
+      $("packetStatus").textContent = `Clipboard copy was unavailable: ${err.message || "unsupported"} The PDF fallback was downloaded.`;
+      speak("The browser could not place the P D F file on the clipboard. The fallback P D F was downloaded. Attach that file in Copilot.");
+      window.open(COPILOT_URL,"_blank","noopener");
     }
   }
 
@@ -655,6 +732,7 @@ Complete the form without asking permission and without stopping because informa
     packetBytes = null;
     if(packetUrl) URL.revokeObjectURL(packetUrl);
     packetUrl = null;
+    $("copyPacketBtn").disabled = true;
     $("downloadPacketBtn").disabled = true;
     $("openPacketBtn").disabled = true;
     $("packetStatus").textContent = "Form selected. Add chart material, then create the one-PDF prompt.";
@@ -731,14 +809,15 @@ Complete the form without asking permission and without stopping because informa
     packetBytes = null;
     if(packetUrl) URL.revokeObjectURL(packetUrl);
     packetUrl = null;
+    $("copyPacketBtn").disabled = true;
     $("downloadPacketBtn").disabled = true;
     $("openPacketBtn").disabled = true;
-    $("packetStatus").textContent = "Not built yet. The finished PDF will be complete and self-instructing.";
+    $("packetStatus").textContent = "Not built yet. The finished PDF will be complete and self-instructing, then copied to the clipboard when the browser permits PDF clipboard data.";
     toast("Cleared.");
   }
 
   function talkThrough(){
-    speak("First choose F M L A, G L P one prior authorization, assisted living, or other. Open the suggested information box if you want a checklist. Second, choose a PDF from the computer or load a public direct PDF URL. Third, paste the relevant chart material. Create one P D F prompt and open Copilot builds a single self-instructing PDF, downloads it, and opens Microsoft 365 Copilot. Attach that one PDF to the Copilot chat. No additional prompt needs to be pasted.");
+    speak("First choose the form type. Second, choose the form PDF. Third, paste the relevant chart material. Copy P D F and open Copilot builds one self-instructing P D F and places the P D F file on the clipboard when supported. In the Copilot chat box, press Control V once. No additional text prompt is needed. If the browser cannot copy a P D F file, use the downloaded fallback.");
   }
 
   $("get365Btn").href = M365_ACTIVATION_URL;
@@ -764,11 +843,15 @@ Complete the form without asking permission and without stopping because informa
   document.querySelectorAll(".typeBtn").forEach(btn => btn.addEventListener("click", () => setFormType(btn.dataset.type, {loadDefault:true})));
   $("addNoteBtn").addEventListener("click", () => addNote());
   $("pdfBtn").addEventListener("click", async () => {
-    try{ await buildPacketPdf({download:true}); toast("One-PDF prompt built and downloaded."); }
+    try{ await buildPacketPdf({download:true}); toast("PDF fallback built and downloaded."); }
     catch(err){ toast(err.message || "Could not build the PDF.", 4200); }
   });
-  $("openCopilotBtn").addEventListener("click", buildAndOpenCopilot);
-  $("buildOpenBtn").addEventListener("click", buildAndOpenCopilot);
+  $("openCopilotBtn").addEventListener("click", buildCopyAndOpenCopilot);
+  $("buildOpenBtn").addEventListener("click", buildCopyAndOpenCopilot);
+  $("copyPacketBtn").addEventListener("click", async () => {
+    try{ await copyExistingPacketToClipboard(); }
+    catch(err){ toast(err.message || "Could not copy the PDF file.", 4800); }
+  });
   $("downloadPacketBtn").addEventListener("click", downloadPacket);
   $("openPacketBtn").addEventListener("click", openPacket);
   $("clearBtn").addEventListener("click", clearAll);
