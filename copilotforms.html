@@ -41,6 +41,8 @@
     textarea:focus,input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.18)}
     .smallArea{min-height:92px}
     .guideArea{min-height:260px}
+    .questionnaireArea{min-height:430px}
+    .patientResponseArea{min-height:230px}
     .guideDisclosure{margin-top:10px;border:1px solid rgba(37,99,235,.28);border-radius:12px;background:#fff;overflow:hidden}
     .guideDisclosure summary{cursor:pointer;list-style:none;padding:12px 13px;font-weight:900;color:var(--accent2);display:flex;align-items:center;justify-content:space-between;gap:10px}
     .guideDisclosure summary::-webkit-details-marker{display:none}
@@ -115,7 +117,7 @@
       <div>
         <div class="title">CMI Forms — One-PDF Form Completion Builder</div>
         <div class="subtitle">
-          Choose the form type, add the PDF, and paste the chart material. One click creates and downloads the self-contained PDF, then opens Copilot.
+          Choose the form type, copy its patient questionnaire when useful, add the PDF, and paste the returned patient answers plus chart material. One click creates and downloads the self-contained PDF, then opens Copilot.
           <br><strong>In Copilot, click the plus or paperclip, choose the downloaded PDF from Downloads, and send it. No separate text prompt is needed.</strong>
           <br><strong>Use only with approved Microsoft 365 Copilot / authorized clinical workflows.</strong>
         </div>
@@ -151,6 +153,16 @@
             <textarea id="suggestedNotes" class="guideArea" placeholder="Choose a form type to load suggested information."></textarea>
           </div>
         </details>
+        <details class="guideDisclosure" id="questionnaireDisclosure">
+          <summary>Patient questionnaire / dot phrase</summary>
+          <div class="guideBody">
+            <div class="hint">Copy this into a portal message or dot phrase. The questions change with the selected form type. Edit them before sending when needed.</div>
+            <textarea id="patientQuestionnaire" class="questionnaireArea" placeholder="Choose a form type to load a patient questionnaire."></textarea>
+            <div class="btnRow">
+              <button class="btn secondary" id="copyQuestionnaireBtn" type="button">📋 Copy patient questionnaire</button>
+            </div>
+          </div>
+        </details>
       </fieldset>
 
       <div class="phead" style="margin-top:14px">
@@ -179,9 +191,16 @@
       </fieldset>
 
       <div class="phead" style="margin-top:14px">
-        <div class="ptitle"><span class="step">3</span> Paste chart material</div>
+        <div class="ptitle"><span class="step">3</span> Paste patient responses and chart material</div>
         <button class="ghost" id="addNoteBtn" type="button">＋ Add another record excerpt</button>
       </div>
+      <fieldset>
+        <legend>Patient questionnaire responses</legend>
+        <label for="patientResponses">Paste the patient’s completed answers here</label>
+        <textarea id="patientResponses" class="patientResponseArea" placeholder="Paste the patient’s portal reply or completed questionnaire here. It will be included as a separate section in the PDF before the clinician record excerpts."></textarea>
+        <div class="hint">This may include the full questionnaire with answers beneath each question. The form-completion model will use it together with the chart.</div>
+      </fieldset>
+
       <div id="notesBox"></div>
 
       <fieldset>
@@ -210,7 +229,7 @@
 
 PAGES 2+ — Original blank form
 
-FINAL PAGES — Form-specific guidance and pasted chart material
+FINAL PAGES — Form-specific guidance, patient questionnaire responses, and pasted chart material
 
 COPILOT ACTION — Click “Build PDF & Open Copilot,” then attach the downloaded PDF using Copilot’s plus or paperclip button.</div>
       </fieldset>
@@ -273,11 +292,143 @@ COPILOT ACTION — Click “Build PDF & Open Copilot,” then attach the downloa
     "Other": `OTHER FORM — suggested chart details to include\n\n• Exact purpose of the form and who will read it:\n• Specific question(s) the form is asking the clinician to answer:\n• Relevant diagnosis or medical basis:\n• Dates, measurements, or time period requested:\n• Current symptoms and functional impact:\n• Objective findings that materially affect the answer:\n• Treatments tried and response:\n• Current restrictions, accommodations, services, or equipment needed:\n• Expected duration and prognosis, if the form asks:\n• Important uncertainty or conflicting information:\n• Reasonable best estimate when the chart is incomplete:\n• Fields that require a clinician-only judgment, signature, examination, or date:`
   };
 
+  const FORM_QUESTIONNAIRES = {
+    "FMLA": `.FMLAPATIENTQUESTIONS
+
+To help us complete your FMLA form, please reply beneath each question. Best estimates are fine. Write “N/A” when a question does not apply. Please attach the form from your employer and your job description if available.
+
+This questionnaire is for leave related to YOUR OWN health condition.
+
+EMPLOYER AND JOB
+1. Employer name:
+2. Job title:
+3. Usual work schedule (days, hours, and hours per week):
+4. Most important job duties, including lifting, standing, driving, computer work, concentration, communication, shift work, or patient care:
+5. Deadline for returning the completed form:
+6. Date you first requested leave or notified your employer:
+
+HEALTH CONDITION AND TREATMENT
+7. Health condition for this request:
+8. Approximate date the condition began:
+9. Is it temporary, long-term, lifelong, or uncertain? Expected duration:
+10. Symptoms or problems that interfere with working:
+11. Any overnight hospital, hospice, rehabilitation, or facility stay? If yes, dates and facility:
+12. Any period when you were unable to work or perform usual activities for more than three consecutive full days? If yes, dates:
+13. Related appointments, procedures, emergency visits, hospitalizations, or treatments, with approximate dates:
+14. Upcoming appointments, procedures, therapy, or treatments and expected frequency:
+15. Other clinicians or therapists involved:
+16. Medications, treatments, therapies, or medical equipment used for this condition:
+
+WORK EFFECTS
+17. Which essential job duties become difficult or impossible?
+18. During a severe episode, what are you unable to do?
+19. What duties can you still perform during a mild episode?
+20. Restrictions or accommodations that might allow safer work:
+
+LEAVE NEEDED
+21. Continuous leave needed? If yes, requested first day away and estimated return date:
+22. Reduced schedule needed? If yes, beginning/end dates, maximum hours per day, maximum days per week, and manageable schedule:
+23. Intermittent leave for unpredictable episodes? If yes, best estimate for the NEXT SIX MONTHS: episodes per week/month, hours or days per episode, and recovery time:
+24. Intermittent time for scheduled appointments or treatments? If yes, frequency and work time needed for each, including travel and recovery:
+25. Workdays or partial days already missed:
+26. Are episodes predictable or without warning?
+27. Common triggers:
+28. Is pregnancy related to this request? If yes, expected delivery date:
+29. May the diagnosis be included if medically appropriate? Yes / No / Discuss first:
+30. Anything else the clinician should understand:
+
+The clinician may adjust dates, restrictions, frequency estimates, and medical certification based on the medical record and clinical judgment.`,
+
+    "GLP-1 prior authorization": `.GLP1PAQUESTIONS
+
+To help us request insurance approval for a GLP-1 medication, please reply beneath each question. Best estimates are fine. Please include medication names, doses, and approximate dates when you can.
+
+1. Which medication is being requested, if known?
+2. Is the request primarily for diabetes, weight management, or both?
+3. Current insurance plan and preferred pharmacy:
+4. Current height, weight, and date measured:
+5. Highest recent weight and approximate date:
+6. Weight-related conditions you have, such as high blood pressure, high cholesterol, sleep apnea, heart disease, prediabetes/diabetes, fatty liver disease, or arthritis:
+7. Most recent A1c or glucose result, if known:
+8. Diet, exercise, behavioral, or structured weight-management programs attempted; approximate duration and result:
+9. Previous weight-loss medications tried, with dates, dose, result, side effects, or reason stopped:
+10. Previous diabetes medications tried, with dates, dose, result, side effects, or reason stopped:
+11. Are you currently taking another GLP-1 medication? If yes, name and dose:
+12. Current medication list, including over-the-counter medicines:
+13. Any medication allergies or serious medication reactions?
+14. Are you pregnant, breastfeeding, or planning pregnancy?
+15. Personal or family history of medullary thyroid cancer or MEN2?
+16. History of pancreatitis, severe gastroparesis, gallbladder disease, bowel obstruction, or major stomach-emptying problems?
+17. Prior bariatric surgery or planned bariatric procedure?
+18. If continuing a GLP-1 medication: start date, starting weight, current weight, current dose, benefit, side effects, and missed doses:
+19. Main treatment goal:
+20. Anything else the insurer should understand about why this medication is needed:
+
+The clinician will compare your answers with the chart and may adjust the final medical justification.`,
+
+    "Assisted living": `.ASSISTEDLIVINGQUESTIONS
+
+To help us complete an assisted-living or level-of-care form, please have the patient, family member, or caregiver reply beneath each question. Identify who is answering and their relationship to the patient.
+
+1. Who is completing this questionnaire and what is your relationship to the patient?
+2. Why is assisted living or a higher level of care being considered now?
+3. Current living arrangement and who is present day and night:
+4. Main medical diagnoses affecting safety or daily function:
+5. Walking: independent, cane, walker, wheelchair, or assistance needed?
+6. Transfers: can the patient get in/out of bed, chair, and toilet independently?
+7. Falls in the last 12 months, with dates or injuries:
+8. Bathing assistance needed:
+9. Dressing assistance needed:
+10. Toileting and continence assistance needed:
+11. Feeding or meal-preparation assistance needed:
+12. Grooming assistance needed:
+13. Medication management: independent, reminders, setup, or administration by another person?
+14. Ability to manage finances, appointments, transportation, shopping, phone, and emergencies:
+15. Memory problems, confusion, poor judgment, wandering, agitation, hallucinations, or unsafe behaviors:
+16. Can the patient be left alone? For how long?
+17. Nighttime needs, including checks, toileting, confusion, falls, or wandering:
+18. Diet restrictions, swallowing problems, food allergies, or nutritional concerns:
+19. Nursing or medical tasks needed: oxygen, CPAP, injections, glucose checks, wound care, catheter, ostomy, dialysis, or other:
+20. Vision, hearing, speech, or communication limitations:
+21. Current equipment: cane, walker, wheelchair, hospital bed, oxygen, hearing aids, etc.:
+22. Home services currently used: family help, aides, nursing, therapy, meals, adult day program, or hospice:
+23. Recent hospitalizations, rehabilitation stays, or major functional decline:
+24. Substance-use or behavioral-health concerns relevant to placement or safety:
+25. What level of help or supervision seems necessary?
+26. Facility name and deadline, if known:
+27. Anything else the clinician should know:
+
+The clinician may adjust the final functional and medical statements after reviewing the record.`,
+
+    "Other": `.FORMPATIENTQUESTIONS
+
+To help us complete your form, please reply beneath each question. Best estimates are fine. Attach the complete blank form and any instructions or job description that came with it.
+
+1. What is the form for?
+2. Who requested it and where will it be sent?
+3. Deadline:
+4. What decision, benefit, service, accommodation, certification, or restriction is being requested?
+5. Medical condition related to the request:
+6. Approximate onset date and expected duration:
+7. Current symptoms:
+8. How the condition affects work, school, travel, housing, daily activities, or safety:
+9. Specific tasks that are difficult or impossible:
+10. Treatments, medications, therapy, equipment, or services currently used:
+11. Important appointments, tests, procedures, hospitalizations, or specialists:
+12. Restrictions or accommodations requested:
+13. Dates, frequencies, measurements, or time periods the form asks for:
+14. Examples that show why the request is needed:
+15. Sections you know should be completed by the employer, school, facility, patient, or another clinician:
+16. Anything else the clinician should understand:
+
+The clinician may adjust the final answers after reviewing the record and the exact form.`
+  };
+
   const FORM_TASKS = {
-    "FMLA":"Review the entire FMLA form carefully and complete every substantive medical field. Use clear, definite best estimates for frequency, duration, restrictions, incapacity, flare pattern, treatment schedule, and expected course. Leave only signature and formal clinician-attestation fields for human review.",
-    "GLP-1 prior authorization":"Review the entire GLP-1 prior-authorization form carefully and complete every substantive field. Select the strongest reasonable definite answers for diagnoses, eligibility criteria, treatment history, contraindication review, clinical justification, requested medication, and continuation criteria. Leave only signature and formal clinician-attestation fields for human review.",
-    "Assisted living":"Review the entire assisted-living or level-of-care form carefully and complete every substantive field with definite best answers about function, cognition, safety, supervision, medication support, services, equipment, and recommended level of assistance. Leave only signature and formal clinician-attestation fields for human review.",
-    "Other":"Review the entire form carefully and determine what each field is asking. Complete every substantive field with the most reasonable definite answer that can be extracted or inferred from the information appended after the form. Leave only signature and formal clinician-attestation fields for human review."
+    "FMLA":"Review the entire FMLA form carefully and complete it as the same form. Enter clear, definite best estimates for frequency, duration, restrictions, incapacity, flare pattern, treatment schedule, and expected course. Preserve every page, section, label, checkbox, table, instruction, and certification block. Leave only fields that truly cannot be reasonably inferred, administrative fields assigned to someone else, signatures, and formal clinician attestations blank.",
+    "GLP-1 prior authorization":"Review the entire GLP-1 prior-authorization form carefully and complete it as the same form. Select the strongest reasonable definite answers for diagnoses, eligibility criteria, treatment history, contraindication review, clinical justification, requested medication, and continuation criteria. Preserve every page, section, label, checkbox, table, instruction, and certification block. Leave only fields that truly cannot be reasonably inferred, administrative fields assigned to someone else, signatures, and formal clinician attestations blank.",
+    "Assisted living":"Review the entire assisted-living or level-of-care form carefully and complete it as the same form with definite best answers about function, cognition, safety, supervision, medication support, services, equipment, and recommended level of assistance. Preserve every page, section, label, checkbox, table, instruction, and certification block. Leave only fields that truly cannot be reasonably inferred, administrative fields assigned to someone else, signatures, and formal clinician attestations blank.",
+    "Other":"Review the entire form carefully and determine what each field is asking. Complete the same form with the most reasonable definite answer that can be extracted or inferred from the appended information. Preserve every page, section, label, checkbox, table, instruction, and certification block. Leave only fields that truly cannot be reasonably inferred, administrative fields assigned to someone else, signatures, and formal clinician attestations blank."
   };
 
   const $ = id => document.getElementById(id);
@@ -365,7 +516,7 @@ COPILOT ACTION — Click “Build PDF & Open Copilot,” then attach the downloa
     card.className = "noteCard";
     card.innerHTML = `
       <div class="noteTop">
-        <div><div class="noteTitle">Record excerpt ${noteCount}</div><div class="count">Paste a note, discharge summary, medication list, labs, specialist note, or other relevant chart text.</div></div>
+        <div><div class="noteTitle">Record excerpt ${noteCount}</div><div class="count">Paste a clinician note, discharge summary, medication list, labs, specialist note, or other relevant chart text.</div></div>
         <div class="noteActions"><button class="ghost removeNoteBtn" type="button">Remove</button></div>
       </div>
       <textarea class="noteText" placeholder="Paste relevant chart material here. Raw copied text is fine."></textarea>`;
@@ -412,6 +563,7 @@ COPILOT ACTION — Click “Build PDF & Open Copilot,” then attach the downloa
     selectedFormType = FORM_GUIDANCE[type] ? type : "Other";
     document.querySelectorAll(".typeBtn").forEach(btn => btn.classList.toggle("active", btn.dataset.type === selectedFormType));
     $("suggestedNotes").value = FORM_GUIDANCE[selectedFormType];
+    $("patientQuestionnaire").value = FORM_QUESTIONNAIRES[selectedFormType] || FORM_QUESTIONNAIRES.Other;
 
     const defaultUrl = DEFAULT_FORM_URLS[selectedFormType] || "";
     const officialLink = $("officialFormLink");
@@ -495,12 +647,14 @@ COPILOT ACTION — Click “Build PDF & Open Copilot,” then attach the downloa
 
     const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
     const guidance = $("suggestedNotes").value.trim();
+    const patientResponses = $("patientResponses").value.trim();
     const optional = $("optionalNotes").value.trim();
     const notes = collectNotes();
 
     const supportSections = [
       {title:"FORM-SPECIFIC WORKING NOTES", body:guidance || "No form-specific working notes supplied."},
-      ...notes.map(n => ({title:`RECORD EXCERPT ${n.idx}`, body:n.text})),
+      {title:"PATIENT QUESTIONNAIRE RESPONSES", body:patientResponses || "No patient questionnaire responses supplied."},
+      ...notes.map(n => ({title:`CLINICIAN RECORD EXCERPT ${n.idx}`, body:n.text})),
       {title:"OPTIONAL INSTRUCTIONS", body:optional || "None."}
     ];
 
@@ -522,16 +676,18 @@ Review the entire blank form carefully before answering it. The form begins on t
 ${embeddedTask()}
 
 COMPLETION RULES
-- Identify every question, checkbox, table, date, frequency, duration, restriction, functional judgment, and narrative field.
-- Read all chart information after the form and map it to the appropriate form fields.
-- Fill every substantive field. Always enter the most reasonable best answer, even when the chart is indirect or incomplete.
-- Use clear, definite language in the completed form. Do not hedge, show confidence levels, cite evidence, mention notes or pages, or explain reasoning inside the form.
-- Estimate missing dates, numbers, frequencies, durations, restrictions, and yes/no choices rather than leaving substantive fields blank.
-- Preserve the original form order, wording, checkboxes, tables, and layout as closely as possible. Prefer completing the PDF itself; otherwise create an editable artifact that mirrors every field in order.
-- Do not create a clinician signature, legal attestation, or examination that did not occur. Leave only signature and formal attestation fields for human completion.
+- Identify every question, checkbox, table, date, frequency, duration, restriction, functional judgment, narrative field, instruction, footer, and certification block.
+- Read the patient questionnaire responses and clinician chart information after the form and map them to the appropriate fields.
+- Complete the ORIGINAL FORM itself whenever technically possible. Do not replace it with a summary, redesigned form, shortened version, or narrative answer sheet.
+- Preserve the form exactly: same page sequence, titles, section headings, wording, labels, checkbox choices, tables, instructions, footer text, certification language, and blank sections.
+- If direct annotation of the original PDF is impossible, reproduce it page-for-page and field-for-field as a faithful duplicate. Do not omit, combine, rename, rearrange, or simplify any section.
+- Enter the most reasonable best answer whenever a clinically reasonable estimate can be made, even when the source information is indirect or incomplete.
+- Use clear, definite language in the form. Do not hedge, show confidence levels, cite evidence, mention notes or pages, or explain reasoning inside the form.
+- Leave a field blank only when no reasonable answer can be inferred, the field belongs to the employer/patient/facility/insurer, or it is a signature, date-of-signature, or formal clinician attestation. Keep the field and its surrounding section visible and unchanged.
+- Do not invent an examination, signature, legal attestation, or administrative identifier.
 
 AFTER COMPLETING THE FORM
-Provide a concise reviewer recap outside the form. For each important item state: Question; Answer entered; Confidence: High, Moderate, or Low. Do not cite evidence in the recap. End with only the additional questions that could materially change the form, including a suggested answer, confidence, and the general chart area where a reviewer could check it.
+Return the completed form as the primary artifact, retaining the exact form structure. Then provide a concise reviewer recap outside the form. For each important item state: Question; Answer entered; Confidence: High, Moderate, or Low. Do not cite evidence in the recap. End with only the additional questions that could materially change the form, including a suggested answer, confidence, and the general chart area where a reviewer could check it.
 
 THIS PDF IS THE COMPLETE PROMPT
 Do not wait for or request any separate text instruction. The attached PDF itself contains the instructions, form, and clinical information. Begin the work from this document alone.
@@ -628,7 +784,7 @@ Complete the form without asking permission and without stopping because informa
     $("copyPacketBtn").disabled = false;
     $("downloadPacketBtn").disabled = false;
     $("openPacketBtn").disabled = false;
-    $("packetStatus").textContent = `Ready: ${packetFilename}. This PDF contains the complete prompt: instructions, ${source.getPageCount()} form page(s), and supporting chart information. Use the main Build PDF & Open Copilot button, then attach this file in Copilot.`;
+    $("packetStatus").textContent = `Ready: ${packetFilename}. This PDF contains the complete prompt: instructions, ${source.getPageCount()} form page(s), and supporting patient/chart information. Use the main Build PDF & Open Copilot button, then attach this file in Copilot.`;
 
     if(options.download) downloadPacket();
     return packetUrl;
@@ -773,6 +929,7 @@ Complete the form without asking permission and without stopping because informa
     formFile = null;
     $("fileStatus").textContent = "No form selected.";
     $("fileStatus").classList.remove("good");
+    $("patientResponses").value = "";
     $("optionalNotes").value = "";
     notesBox.innerHTML = "";
     noteCount = 0;
@@ -789,10 +946,16 @@ Complete the form without asking permission and without stopping because informa
   }
 
   function talkThrough(){
-    speak("First choose the form type. Second, choose the form P D F. Third, paste the relevant chart material. Build P D F and open Copilot creates and downloads one self-instructing P D F. In Copilot, click the plus or paperclip, choose upload from this device, and select the P D F from Downloads. No additional text prompt is needed.");
+    speak("First choose the form type and open the patient questionnaire if useful. Second, choose the form P D F. Third, paste the returned patient answers and relevant chart material. Build P D F and open Copilot creates and downloads one self-instructing P D F. In Copilot, click the plus or paperclip, choose upload from this device, and select the P D F from Downloads. No additional text prompt is needed.");
   }
 
   $("get365Btn").href = M365_ACTIVATION_URL;
+  $("copyQuestionnaireBtn").addEventListener("click", async () => {
+    const text = $("patientQuestionnaire").value.trim();
+    if(!text){ toast("Choose a form type first."); return; }
+    try{ await copyText(text); toast("Patient questionnaire copied."); }
+    catch(e){ toast("Clipboard blocked. Select and copy the questionnaire manually."); }
+  });
   $("formPdf").addEventListener("change", ev => {
     const file = ev.target.files && ev.target.files[0];
     if(!file){ formFile = null; return; }
@@ -837,7 +1000,7 @@ Complete the form without asking permission and without stopping because informa
   });
   window.addEventListener("resize", applyDeviceMode);
   window.addEventListener("orientationchange", () => setTimeout(applyDeviceMode,250));
-  ["suggestedNotes","optionalNotes"].forEach(id => {
+  ["suggestedNotes","patientQuestionnaire","patientResponses","optionalNotes"].forEach(id => {
     $(id).addEventListener("input", invalidatePacket);
   });
   notesBox.addEventListener("input", invalidatePacket);
