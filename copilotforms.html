@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -140,12 +141,14 @@
       <fieldset>
         <legend>Form category</legend>
         <div class="formTypes" id="formTypes">
-          <button class="typeBtn" type="button" data-type="FMLA">FMLA</button>
-          <button class="typeBtn" type="button" data-type="GLP-1 prior authorization">Prior auth — GLP-1</button>
+          <button class="typeBtn" type="button" data-type="FMLA">FMLA — own health (WH-380-E)</button>
+          <button class="typeBtn" type="button" data-type="FMLA family member">FMLA — care for family (WH-380-F)</button>
+          <button class="typeBtn" type="button" data-type="Medicare GLP-1 Bridge">Medicare GLP-1 Bridge</button>
+          <button class="typeBtn" type="button" data-type="GLP-1 prior authorization">Other GLP-1 prior auth</button>
           <button class="typeBtn" type="button" data-type="Assisted living">Assisted living</button>
           <button class="typeBtn" type="button" data-type="Other">Other</button>
         </div>
-        <div class="hint">The form type changes the embedded Copilot task and the kinds of chart details it looks for.</div>
+        <div class="hint">The form type changes the embedded Copilot task and the kinds of chart details it looks for. WH-380-E, WH-380-F, and the Medicare GLP-1 Bridge form load automatically from the hosted GitHub PDFs.</div>
         <details class="guideDisclosure" id="guideDisclosure">
           <summary>Suggested information to include</summary>
           <div class="guideBody">
@@ -279,11 +282,63 @@ COPILOT ACTION — Click “Build PDF & Open Copilot,” then attach the downloa
   const HANDBOOK_URL = "https://cmihandbook.com";
   const SHARE_TITLE = "CMI Form Completion Builder";
   const SHARE_TEXT = "On your computer, go to cmihandbook.com and choose the form completion tool.";
-  const FMLA_FORM_URL = "https://dormantone.github.io/boringforms/WH-380-E.pdf";
-  const DEFAULT_FORM_URLS = { "FMLA": FMLA_FORM_URL };
+  const HOSTED_FORMS = Object.freeze({
+    "FMLA": {
+      url: "https://dormantone.github.io/boringforms/WH-380-E.pdf",
+      linkText: "Open hosted WH-380-E PDF",
+      sourceLabel: "WH-380-E — loaded from DormantOne GitHub Pages"
+    },
+    "FMLA family member": {
+      url: "https://dormantone.github.io/boringforms/WH-380-F.pdf",
+      linkText: "Open hosted WH-380-F PDF",
+      sourceLabel: "WH-380-F — loaded from DormantOne GitHub Pages"
+    },
+    "Medicare GLP-1 Bridge": {
+      url: "https://dormantone.github.io/boringforms/medicarebridgeform.pdf",
+      linkText: "Open hosted Medicare GLP-1 Bridge PDF",
+      sourceLabel: "Medicare GLP-1 Bridge — loaded from DormantOne GitHub Pages"
+    }
+  });
+  const HOSTED_FORM_URLS = new Set(Object.values(HOSTED_FORMS).map(item => item.url));
 
   const FORM_GUIDANCE = {
-    "FMLA": `FMLA — suggested chart details to include\n\n• Exact condition(s) producing incapacity or need for care:\n• Approximate onset date and expected duration:\n• Whether the condition is chronic, episodic, permanent, or time-limited:\n• Current symptoms and objective functional effects:\n• Essential job functions affected, if known:\n• Continuous leave needed? If yes, likely start/end dates:\n• Intermittent leave needed? Estimate episodes per week/month and hours/days per episode:\n• Reduced schedule needed? Estimate hours and duration:\n• Treatment schedule and frequency of medical visits:\n• Flare pattern, recovery time, and foreseeable absences:\n• Restrictions or accommodations that are medically reasonable:\n• Hospitalizations, procedures, specialist care, or rehabilitation relevant to the request:\n• What is patient-reported versus directly supported by clinician observation:\n• Fields that must remain for clinician judgment, signature, or date:`,
+    "FMLA": `FMLA — suggested chart details to include\n\n• Exact condition(s) producing incapacity or need for care:\n• Approximate onset date and expected duration:\n• Whether the condition is chronic, episodic, permanent, or time-limited:\n• Current symptoms and objective functional effects:\n• Essential job functions affected, if known:\n• Continuous leave needed? If yes, likely start/end dates:\n• Intermittent leave needed? Estimate episodes per week/month and hours/days per episode:\n• Reduced schedule needed? Estimate hours and duration:\n• Treatment schedule and frequency of medical visits:\n• Flare pattern, recovery time, and foreseeable absences:\n• Restrictions or accommodations that are medically reasonable:\n• Hospitalizations, procedures, specialist care, or rehabilitation relevant to the request:\n• What is patient-reported versus directly supported by clinician observation:
+• Fields that must remain for clinician judgment, signature, or date:`,
+
+    "FMLA family member": `FMLA — CARE FOR A FAMILY MEMBER (WH-380-F) — suggested chart details to include
+
+• Employee name, employer, certification deadline, and relationship to the patient:
+• Patient name and the condition requiring care:
+• Approximate onset date and expected duration of the patient’s condition:
+• Why the condition qualifies as a serious health condition (inpatient care, incapacity plus treatment, pregnancy, chronic condition, permanent/long-term condition, or multiple treatments):
+• Type of care that is medically necessary: medical/hygienic/nutritional/safety help, transportation, physical care, or psychological comfort:
+• What care the employee will personally provide:
+• Overnight admissions, periods of incapacity, treatment dates, and continuing treatment regimen:
+• Scheduled visits, procedures, therapy, referrals, and recovery time:
+• Continuous period when the employee must be absent to provide care, with beginning/end dates:
+• Intermittent leave needed over the next 6 months: episodes per day/week/month and hours/days per episode:
+• Reduced work schedule needed by the employee, if any:
+• Other medical facts relevant to the need for care, without including prohibited genetic information:
+• Fields belonging to the employer or employee, and all signature/date fields, that must remain for those parties to complete:`,
+
+    "Medicare GLP-1 Bridge": `MEDICARE GLP-1 BRIDGE — suggested chart details to include
+
+• Patient name, Medicare beneficiary ID, date of birth, address, city/state, and ZIP code:
+• Prescriber name, fax, phone, office contact, NPI, Tax ID, and office address:
+• Requested product exactly as listed on the form: Founday tablets, Wegovy HD injection, Wegovy injection, Wegovy tablets, or Zepbound KwikPen:
+• Evidence that a pharmacy claim was denied before the PA request, including date/pharmacy when available:
+• Whether the patient has a Part D-eligible diagnosis that the form says must be submitted to Part D instead: moderate-to-severe OSA, MASH with moderate-to-advanced fibrosis, type 2 diabetes, or established cardiovascular disease treated for secondary prevention:
+• Age at least 18 and use with lifestyle modification, including structured nutrition and physical activity:
+• BMI at GLP-1 therapy initiation, not merely current BMI, with the form’s category selected:
+• Prediabetes status:
+• Previous myocardial infarction:
+• Previous stroke:
+• Symptomatic peripheral artery disease:
+• Heart failure with preserved ejection fraction:
+• Uncontrolled hypertension despite concurrent treatment with two antihypertensive medications, including representative BP values and medication names:
+• Chronic kidney disease stage 3a or above, including recent eGFR/date:
+• Any unanswered item that requires chart verification rather than inference:
+• Prescriber signature and date must remain blank for clinician completion:`,
 
     "GLP-1 prior authorization": `GLP-1 PRIOR AUTHORIZATION — suggested chart details to include\n\n• Requested drug, dose, and indication:\n• Diagnosis: obesity/overweight and/or type 2 diabetes:\n• Current height, weight, BMI, and dates:\n• Weight trend and highest recent weight, if available:\n• Relevant comorbidities (e.g., hypertension, dyslipidemia, OSA, cardiovascular disease, prediabetes/diabetes, osteoarthritis):\n• A1c/glucose history when diabetes is relevant:\n• Lifestyle program attempted, duration, and response:\n• Prior weight-loss medications or diabetes agents tried, failed, not tolerated, or contraindicated:\n• Current medications and clinically important interactions or duplications:\n• Contraindications or risk review documented (e.g., pregnancy, MEN2/medullary thyroid cancer history, pancreatitis/gallbladder concerns when relevant):\n• Expected clinical benefit and treatment goal:\n• Why alternatives are less appropriate:\n• Whether continuation criteria are met, including response and adherence:\n• Insurance-specific missing fields likely to require confirmation:`,
 
@@ -338,6 +393,82 @@ LEAVE NEEDED
 30. Anything else the clinician should understand:
 
 The clinician may adjust dates, restrictions, frequency estimates, and medical certification based on the medical record and clinical judgment.`,
+
+    "FMLA family member": `.FMLAFAMILYCAREQUESTIONS
+
+To help us complete Form WH-380-F for leave to CARE FOR A FAMILY MEMBER, please reply beneath each question. Best estimates are fine. Write “N/A” when a question does not apply. The employee and the patient/family caregiver may complete this together. Please attach the employer’s form and instructions.
+
+EMPLOYEE AND EMPLOYER
+1. Employee name:
+2. Employer name:
+3. Date the employer requested certification and deadline for return:
+4. Employee’s usual work schedule (hours/day and days/week):
+5. Patient/family member’s name:
+6. Relationship to the employee: spouse, parent, child under 18, or adult child incapable of self-care because of disability:
+7. If the relationship is in loco parentis, briefly explain:
+
+CARE THE EMPLOYEE WILL PROVIDE
+8. What care will the employee personally provide? Check or describe: basic medical help, hygiene, nutrition, safety supervision, transportation, physical care, psychological comfort, coordination of care, or other:
+9. Why is that care medically necessary?
+10. Best estimate of the total amount of leave needed:
+11. Is a reduced work schedule needed? If yes, beginning/end dates, hours per day, and days per week the employee can work:
+
+PATIENT’S CONDITION
+12. Condition for which care is needed:
+13. Approximate date the condition began:
+14. Expected duration of the condition:
+15. Current symptoms and functional limitations:
+16. Any overnight hospital, hospice, rehabilitation, or residential medical-care stay? Dates/facility:
+17. Any period of incapacity lasting more than three consecutive full days? Dates:
+18. Dates the patient was or will be seen for this condition:
+19. Continuing treatment, prescriptions, therapy, or specialized equipment:
+20. Is the condition pregnancy-related? If yes, expected delivery date:
+21. Is it a chronic condition requiring visits at least twice yearly? Describe:
+22. Is incapacity permanent or long-term and under continuing supervision? Describe:
+23. Are multiple treatments needed, such as chemotherapy, restorative surgery, dialysis, or repeated therapy? Describe:
+24. Other medical facts relevant to the need for care:
+
+AMOUNT OF LEAVE NEEDED
+25. Planned treatment dates and work time needed for travel, treatment, and recovery:
+26. Referrals to other clinicians or therapists, nature of treatment, beginning/end dates, and frequency:
+27. Continuous period when the employee must be absent to care for the patient, including beginning/end dates:
+28. Intermittent care over the NEXT SIX MONTHS: estimated episodes per day/week/month and hours or days per episode:
+29. Are episodes predictable or without warning? Common triggers or circumstances:
+30. Anything else the clinician should understand:
+
+The clinician may adjust the diagnosis disclosure, dates, frequency, duration, and medical necessity based on the record and clinical judgment. Employer/employee sections and signatures should remain for the correct person to complete.`,
+
+    "Medicare GLP-1 Bridge": `.MEDICAREGLP1BRIDGEQUESTIONS
+
+To help us complete the Medicare GLP-1 Bridge Prior Authorization Request Form, please reply beneath each question. Best estimates are fine. This form states that certain Part D-eligible diagnoses must be submitted to the patient’s Part D plan instead of the Bridge.
+
+PATIENT AND PRESCRIBER INFORMATION
+1. Patient name, Medicare beneficiary ID, date of birth, address, city/state, and ZIP code:
+2. Prescriber name, phone, fax, office contact, NPI, Tax ID, and office address, if known:
+3. Requested product exactly as listed on the form: Founday tablets, Wegovy HD injection, Wegovy injection, Wegovy tablets, or Zepbound KwikPen:
+4. Has the pharmacy already submitted a claim that was denied? If yes, date, pharmacy, and denial information:
+
+PART D ROUTING QUESTIONS
+5. Does the patient have moderate-to-severe obstructive sleep apnea? Include testing/severity if known:
+6. Does the patient have MASH/NASH with moderate-to-advanced liver fibrosis? Include fibrosis stage or supporting study if known:
+7. Does the patient have type 2 diabetes? Include most recent A1c and date if known:
+8. Is the drug being prescribed to reduce major cardiovascular events in an adult with established cardiovascular disease? Describe the qualifying disease:
+
+BRIDGE ELIGIBILITY ITEMS
+9. Is the patient at least 18 years old?
+10. Describe structured nutrition, physical activity, and other lifestyle modification being used with treatment:
+11. Date GLP-1 therapy began or is expected to begin:
+12. Height, weight, and BMI at GLP-1 therapy initiation. If treatment has already lowered BMI, provide the initial BMI rather than only the current BMI:
+13. Does the patient have prediabetes? Include A1c/glucose and date if known:
+14. Previous myocardial infarction? Date/details:
+15. Previous stroke? Date/details:
+16. Symptomatic peripheral artery disease? Details:
+17. Heart failure with preserved ejection fraction? Include EF/date if known:
+18. Uncontrolled hypertension despite two concurrent antihypertensive medications? List the two medications and representative BP readings:
+19. Chronic kidney disease stage 3a or above? Include eGFR and date:
+20. Anything else needed to explain eligibility or a prior denial:
+
+The clinician will verify every Yes/No answer against the chart. Do not guess a denied-claim number, diagnosis, BMI, blood pressure, kidney stage, or prescriber identifier that is not supported.`,
 
     "GLP-1 prior authorization": `.GLP1PAQUESTIONS
 
@@ -425,7 +556,9 @@ The clinician may adjust the final answers after reviewing the record and the ex
   };
 
   const FORM_TASKS = {
-    "FMLA":"Review the entire FMLA form carefully and complete it as the same form. Enter clear, definite best estimates for frequency, duration, restrictions, incapacity, flare pattern, treatment schedule, and expected course. Preserve every page, section, label, checkbox, table, instruction, and certification block. Leave only fields that truly cannot be reasonably inferred, administrative fields assigned to someone else, signatures, and formal clinician attestations blank.",
+    "FMLA":"Review the entire WH-380-E FMLA form carefully and complete it as the same form for the employee’s own serious health condition. Enter clear, definite best estimates for frequency, duration, restrictions, incapacity, flare pattern, treatment schedule, and expected course. Preserve every page, section, label, checkbox, table, instruction, and certification block. Leave only fields that truly cannot be reasonably inferred, administrative fields assigned to someone else, signatures, and formal clinician attestations blank.",
+    "FMLA family member":"Review the entire WH-380-F FMLA form carefully and complete it as the same form for an employee who needs leave to care for a family member. Keep the employee and patient identities distinct. Complete the medical-necessity, serious-health-condition, care-needed, continuous-leave, reduced-schedule, treatment, and intermittent-leave fields with definite best estimates supported by the appended information. Do not add prohibited genetic information. Preserve every page, section, label, checkbox, table, instruction, and certification block. Leave employer/employee fields that belong to those parties, all signatures/dates, and any truly unsupported clinician attestation blank.",
+    "Medicare GLP-1 Bridge":"Review the entire Medicare GLP-1 Bridge Prior Authorization Request Form and complete that exact same three-page form. Answer every routing and eligibility question with a definite Yes or No only when supported by the appended material; select the requested product and BMI-at-initiation category; and enter patient/prescriber data when available. Follow the form’s own routing rule: if the patient has a Part D-eligible diagnosis such as moderate-to-severe OSA, MASH with moderate-to-advanced fibrosis, type 2 diabetes, or an established cardiovascular-disease secondary-prevention indication, reflect the true answers and state in the separate reviewer recap that the form directs the request to Part D rather than inventing Bridge eligibility. Do not fabricate a prior denied pharmacy claim, BIN/PCN submission, diagnosis, identifier, laboratory value, blood pressure, medication, or signature. Preserve every page, line, label, checkbox, and attestation exactly; leave the prescriber signature and date blank.",
     "GLP-1 prior authorization":"Review the entire GLP-1 prior-authorization form carefully and complete it as the same form. Select the strongest reasonable definite answers for diagnoses, eligibility criteria, treatment history, contraindication review, clinical justification, requested medication, and continuation criteria. Preserve every page, section, label, checkbox, table, instruction, and certification block. Leave only fields that truly cannot be reasonably inferred, administrative fields assigned to someone else, signatures, and formal clinician attestations blank.",
     "Assisted living":"Review the entire assisted-living or level-of-care form carefully and complete it as the same form with definite best answers about function, cognition, safety, supervision, medication support, services, equipment, and recommended level of assistance. Preserve every page, section, label, checkbox, table, instruction, and certification block. Leave only fields that truly cannot be reasonably inferred, administrative fields assigned to someone else, signatures, and formal clinician attestations blank.",
     "Other":"Review the entire form carefully and determine what each field is asking. Complete the same form with the most reasonable definite answer that can be extracted or inferred from the appended information. Preserve every page, section, label, checkbox, table, instruction, and certification block. Leave only fields that truly cannot be reasonably inferred, administrative fields assigned to someone else, signatures, and formal clinician attestations blank."
@@ -436,6 +569,7 @@ The clinician may adjust the final answers after reviewing the record and the ex
   let noteCount = 0;
   let selectedFormType = "FMLA";
   let formFile = null;
+  let loadedHostedFormType = null;
   let packetBytes = null;
   let packetUrl = null;
   let packetFilename = "cmi-form-packet.pdf";
@@ -565,20 +699,30 @@ The clinician may adjust the final answers after reviewing the record and the ex
     $("suggestedNotes").value = FORM_GUIDANCE[selectedFormType];
     $("patientQuestionnaire").value = FORM_QUESTIONNAIRES[selectedFormType] || FORM_QUESTIONNAIRES.Other;
 
-    const defaultUrl = DEFAULT_FORM_URLS[selectedFormType] || "";
+    const hosted = HOSTED_FORMS[selectedFormType] || null;
     const officialLink = $("officialFormLink");
-    if(defaultUrl){
-      $("formUrl").value = defaultUrl;
-      officialLink.href = defaultUrl;
-      officialLink.textContent = "Open hosted WH-380-E PDF";
+    if(hosted){
+      $("formUrl").value = hosted.url;
+      officialLink.href = hosted.url;
+      officialLink.textContent = hosted.linkText;
       officialLink.style.display = "inline-flex";
       if(opts.loadDefault !== false){
-        loadPdfFromUrl({sourceLabel:"WH-380-E — loaded from DormantOne GitHub Pages"});
+        loadPdfFromUrl({sourceLabel:hosted.sourceLabel, hostedType:selectedFormType});
       }
     }else{
       officialLink.style.display = "none";
       officialLink.removeAttribute("href");
-      if(!formFile && $("formUrl").value === FMLA_FORM_URL) $("formUrl").value = "";
+      if(HOSTED_FORM_URLS.has($("formUrl").value.trim())) $("formUrl").value = "";
+
+      // Do not silently carry a different built-in form into a generic category.
+      // A manually uploaded PDF or custom URL is preserved.
+      if(loadedHostedFormType){
+        formFile = null;
+        loadedHostedFormType = null;
+        $("formPdf").value = "";
+        $("fileStatus").textContent = "No form selected for this category. Upload a PDF or paste its direct URL.";
+        $("fileStatus").classList.remove("good");
+      }
     }
     invalidatePacket();
   }
@@ -853,8 +997,9 @@ Complete the form without asking permission and without stopping because informa
     }
   }
 
-  function setLoadedForm(file, sourceLabel){
+  function setLoadedForm(file, sourceLabel, hostedType){
     formFile = file;
+    loadedHostedFormType = hostedType || null;
     $("fileStatus").textContent = `${sourceLabel || file.name} — ${(file.size/1024/1024).toFixed(2)} MB`;
     $("fileStatus").classList.add("good");
     packetBytes = null;
@@ -869,6 +1014,7 @@ Complete the form without asking permission and without stopping because informa
   async function loadPdfFromUrl(options){
     const opts = options || {};
     const previousForm = formFile;
+    const previousHostedFormType = loadedHostedFormType;
     const previousStatus = $("fileStatus").textContent;
     const previousWasGood = $("fileStatus").classList.contains("good");
     const raw = $("formUrl").value.trim();
@@ -905,15 +1051,16 @@ Complete the form without asking permission and without stopping because informa
       const filename = /\.pdf$/i.test(nameFromPath) ? nameFromPath : "form-from-url.pdf";
       const file = new File([blob], filename, {type:"application/pdf", lastModified:Date.now()});
       $("formPdf").value = "";
-      setLoadedForm(file, opts.sourceLabel || `${filename} — loaded from URL`);
+      setLoadedForm(file, opts.sourceLabel || `${filename} — loaded from URL`, opts.hostedType || null);
       toast("PDF loaded from URL.");
     }catch(err){
       formFile = previousForm;
+      loadedHostedFormType = previousHostedFormType;
       if(previousForm){
         $("fileStatus").textContent = previousStatus;
         $("fileStatus").classList.toggle("good", previousWasGood);
       }else{
-        $("fileStatus").textContent = "Could not load that URL. The site may require login, return a viewer page, or block browser downloads. For the FMLA default, confirm the GitHub Pages file is publicly accessible; otherwise download the PDF manually and choose it above.";
+        $("fileStatus").textContent = "Could not load that URL. The site may require login, return a viewer page, or block browser downloads. For a built-in hosted form, confirm the GitHub Pages PDF is publicly accessible; otherwise download the PDF manually and choose it above.";
         $("fileStatus").classList.remove("good");
       }
       toast(err.message || "Could not load the PDF URL.", 5200);
@@ -927,6 +1074,7 @@ Complete the form without asking permission and without stopping because informa
     $("formPdf").value = "";
     $("formUrl").value = "";
     formFile = null;
+    loadedHostedFormType = null;
     $("fileStatus").textContent = "No form selected.";
     $("fileStatus").classList.remove("good");
     $("patientResponses").value = "";
@@ -968,7 +1116,7 @@ Complete the form without asking permission and without stopping because informa
       return;
     }
     $("formUrl").value = "";
-    setLoadedForm(file, file.name);
+    setLoadedForm(file, file.name, null);
   });
 
   $("loadUrlBtn").addEventListener("click", loadPdfFromUrl);
