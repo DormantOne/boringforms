@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -102,6 +101,9 @@
 </head>
 <body>
 <div class="wrap">
+  <div style="background:#fef2f2;border:2px solid #dc2626;border-radius:12px;padding:12px 16px;margin-bottom:14px;color:#7f1d1d;font-weight:900;text-align:center;line-height:1.55;box-shadow:var(--shadow)">
+    ⚠️ Only for use with UPMC Copilot &nbsp;•&nbsp; For testing purposes only &nbsp;•&nbsp; Do not enter PHI (protected health information)
+  </div>
   <section class="phoneGate" id="phoneGate" aria-live="polite">
     <div class="phoneGateTitle">Use this from a computer when possible.</div>
     <p>This tool creates one self-instructing PDF, downloads it, and opens Copilot. Attach that downloaded PDF in the Copilot chat using the plus or paperclip button.</p>
@@ -277,7 +279,7 @@ COPILOT ACTION — Click “Build PDF & Open Copilot,” then attach the downloa
 (function(){
   "use strict";
 
-  const COPILOT_URL = "https://www.microsoft365.com/copilot";
+  const COPILOT_URL = "https://m365.cloud.microsoft/chat/?fromCode=cmcv2&redirectId=ACB3DED96EE440709FB6B42BE2DCA492&internalredirect=CCM&auth=2";
   const M365_ACTIVATION_URL = "https://apps.powerapps.com/play/e/c34e244b-e683-4eef-bb66-67176b581713/a/daf86d65-9ffb-4e95-aaf2-388bbb5304bf?tenantId=8b3dd73e-4e72-4679-b191-56da1588712b&hint=2e699ac1-227b-4779-ac48-f7a1b3ff5631&sourcetime=1743427811944";
   const HANDBOOK_URL = "https://cmihandbook.com";
   const SHARE_TITLE = "CMI Form Completion Builder";
@@ -988,7 +990,7 @@ Complete the form without asking permission and without stopping because informa
       $("packetStatus").textContent = `Downloaded ${packetFilename}. In Copilot, use the plus or paperclip button to attach it from Downloads. The PDF itself contains the complete prompt.`;
       showUploadGuide();
       toast("PDF downloaded. Attach it in Copilot using the plus or paperclip button.", 5200);
-      speak("The P D F has downloaded. In Copilot, click the plus or paperclip, choose upload from this device, and select the P D F from Downloads.");
+      speak("The P D F has downloaded. In U P M C Copilot, use G P T 5.6 and turn on think deeper. Click the plus or paperclip, choose upload from this device, and select the P D F from Downloads. Only for use with U P M C Copilot, and for testing purposes only.");
       if(copilotWindow) copilotWindow.location.href = COPILOT_URL;
       else window.open(COPILOT_URL,"_blank","noopener");
     }catch(err){
@@ -1094,7 +1096,7 @@ Complete the form without asking permission and without stopping because informa
   }
 
   function talkThrough(){
-    speak("First choose the form type and open the patient questionnaire if useful. Second, choose the form P D F. Third, paste the returned patient answers and relevant chart material. Build P D F and open Copilot creates and downloads one self-instructing P D F. In Copilot, click the plus or paperclip, choose upload from this device, and select the P D F from Downloads. No additional text prompt is needed.");
+    speak("Reminder: only for use with U P M C Copilot, and for testing purposes only. Do not enter protected health information. In Copilot, use G P T 5.6 and turn on think deeper. First choose the form type and open the patient questionnaire if useful. Second, choose the form P D F. Third, paste the returned patient answers and relevant chart material. Build P D F and open Copilot creates and downloads one self-instructing P D F. In Copilot, click the plus or paperclip, choose upload from this device, and select the P D F from Downloads. No additional text prompt is needed.");
   }
 
   $("get365Btn").href = M365_ACTIVATION_URL;
