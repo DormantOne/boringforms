@@ -104,13 +104,13 @@
 <div class="wrap">
   <section class="phoneGate" id="phoneGate" aria-live="polite">
     <div class="phoneGateTitle">Use this from a computer when possible.</div>
-    <p>This tool creates one self-instructing PDF, downloads it, and opens Copilot. Attach that downloaded PDF in the Copilot chat using the plus or paperclip button.</p>
+    <p>This tool creates one self-instructing PDF, downloads it, and opens . Attach that downloaded PDF in the  chat using the plus or paperclip button.</p>
     <div class="phoneGateActions">
       <button class="mini" id="shareLinkBtn" type="button">📤 Share this link</button>
       <a class="ghost" id="emailSelfBtn" href="mailto:">✉️ Email link to myself</a>
       <button class="ghost" id="continuePhoneBtn" type="button">Continue on phone anyway</button>
     </div>
-    <div class="deviceToggle">Nothing is uploaded by this page. The PDF and chart text remain in the browser until you choose to use Copilot.</div>
+    <div class="deviceToggle">Nothing is uploaded by this page. The PDF and chart text remain in the browser until you choose to use .</div>
   </section>
 
   <header class="header">
@@ -118,9 +118,9 @@
       <div>
         <div class="title">CMI Forms — One-PDF Form Completion Builder</div>
         <div class="subtitle">
-          Choose the form type, copy its patient questionnaire when useful, add the PDF, and paste the returned patient answers plus chart material. One click creates and downloads the self-contained PDF, then opens Copilot.
-          <br><strong>In Copilot, click the plus or paperclip, choose the downloaded PDF from Downloads, and send it. No separate text prompt is needed.</strong>
-          <br><strong>Use only with approved Microsoft 365 Copilot / authorized clinical workflows.</strong>
+          Choose the form type, copy its patient questionnaire when useful, add the PDF, and paste the returned patient answers plus chart material. One click creates and downloads the self-contained PDF, then opens .
+          <br><strong>In , click the plus or paperclip, choose the downloaded PDF from Downloads, and send it. No separate text prompt is needed.</strong>
+          <br><strong>Use only with approved Microsoft 365  / authorized clinical workflows.</strong>
         </div>
         <div class="meta">This local page does not send or save form or chart text by itself.</div>
       </div>
@@ -148,7 +148,7 @@
           <button class="typeBtn" type="button" data-type="Assisted living">Assisted living</button>
           <button class="typeBtn" type="button" data-type="Other">Other</button>
         </div>
-        <div class="hint">The form type changes the embedded Copilot task and the kinds of chart details it looks for. WH-380-E, WH-380-F, and the Medicare GLP-1 Bridge form load automatically from the hosted GitHub PDFs.</div>
+        <div class="hint">The form type changes the embedded  task and the kinds of chart details it looks for. WH-380-E, WH-380-F, and the Medicare GLP-1 Bridge form load automatically from the hosted GitHub PDFs.</div>
         <details class="guideDisclosure" id="guideDisclosure">
           <summary>Suggested information to include</summary>
           <div class="guideBody">
@@ -208,12 +208,12 @@
 
       <fieldset>
         <legend>Optional instructions</legend>
-        <label for="optionalNotes">Anything else Copilot should do or avoid</label>
+        <label for="optionalNotes">Anything else  should do or avoid</label>
         <textarea id="optionalNotes" class="smallArea" placeholder="e.g., Use the most recent functional assessment; do not imply continuous leave; leave signature/date fields blank; distinguish patient report from clinician judgment."></textarea>
       </fieldset>
 
       <div class="btnRow">
-        <button class="btn primary" id="openCopilotBtn" type="button">📎 Build PDF & Open Copilot</button>
+        <button class="btn primary" id="openBtn" type="button">📎 Build PDF & Open </button>
         <button class="btn secondary" id="pdfBtn" type="button">📄 Build PDF Only</button>
         <button class="btn secondary" id="clearBtn" type="button">🧹 Clear</button>
       </div>
@@ -222,33 +222,33 @@
     <section class="panel previewPanel">
       <div class="phead">
         <div class="ptitle">One-PDF upload workflow</div>
-        <button class="mini" id="buildOpenBtn" type="button">Build PDF & Open Copilot</button>
+        <button class="mini" id="buildOpenBtn" type="button">Build PDF & Open </button>
       </div>
 
       <fieldset>
-        <legend>One downloaded PDF goes into the Copilot prompt</legend>
-        <div class="notice safe" style="margin-top:0"><b>The generated PDF is the prompt.</b> The button downloads that PDF and opens Copilot:</div>
-        <div class="out" id="packetOutline">PAGE 1 — Instructions to Copilot
+        <legend>One downloaded PDF goes into the  prompt</legend>
+        <div class="notice safe" style="margin-top:0"><b>The generated PDF is the prompt.</b> The button downloads that PDF and opens :</div>
+        <div class="out" id="packetOutline">PAGE 1 — Instructions to 
 
 PAGES 2+ — Original blank form
 
 FINAL PAGES — Form-specific guidance, patient questionnaire responses, and pasted chart material
 
-COPILOT ACTION — Click “Build PDF & Open Copilot,” then attach the downloaded PDF using Copilot’s plus or paperclip button.</div>
+ ACTION — Click “Build PDF & Open ,” then attach the downloaded PDF using ’s plus or paperclip button.</div>
       </fieldset>
 
       <div class="packetBox">
         <div class="packetTitle">Self-contained PDF prompt</div>
-        <div class="meta" id="packetStatus">Not built yet. The finished PDF will contain the complete instructions, form, and chart information, ready to attach in Copilot.</div>
+        <div class="meta" id="packetStatus">Not built yet. The finished PDF will contain the complete instructions, form, and chart information, ready to attach in .</div>
         <div class="packetActions">
-          <button class="ghost" id="copyPacketBtn" type="button" disabled>🪟 Open Copilot</button>
+          <button class="ghost" id="copyPacketBtn" type="button" disabled>🪟 Open </button>
           <button class="ghost" id="downloadPacketBtn" type="button" disabled>⬇ Download PDF again</button>
           <button class="ghost" id="openPacketBtn" type="button" disabled>↗ Review PDF</button>
         </div>
       </div>
 
       <div class="notice safe"><b>Form output:</b> clear and definite best answers in the form; confidence appears only in the separate reviewer recap.</div>
-      <div class="notice warn"><b>In Copilot:</b> click the <b>plus or paperclip</b>, choose <b>Upload from this device</b>, and select the generated PDF from your Downloads folder. The PDF already contains the full prompt.</div>
+      <div class="notice warn"><b>In :</b> click the <b>plus or paperclip</b>, choose <b>Upload from this device</b>, and select the generated PDF from your Downloads folder. The PDF already contains the full prompt.</div>
     </section>
   </div>
 </div>
@@ -256,17 +256,17 @@ COPILOT ACTION — Click “Build PDF & Open Copilot,” then attach the downloa
 
 <div class="handoffOverlay" id="handoffOverlay" role="dialog" aria-modal="true" aria-labelledby="handoffTitle">
   <div class="handoffCard">
-    <div class="handoffTitle" id="handoffTitle">Attach the generated PDF in Copilot</div>
-    <div class="meta">The PDF has been downloaded and Copilot is opening in a new tab.</div>
+    <div class="handoffTitle" id="handoffTitle">Attach the generated PDF in </div>
+    <div class="meta">The PDF has been downloaded and  is opening in a new tab.</div>
     <div class="handoffFile" id="handoffFilename">cmi-form-packet.pdf</div>
     <ol class="handoffSteps">
-      <li>In Copilot, click the <b>plus</b>, <b>paperclip</b>, or <b>Add files</b> control beside the chat box.</li>
+      <li>In , click the <b>plus</b>, <b>paperclip</b>, or <b>Add files</b> control beside the chat box.</li>
       <li>Choose <b>Upload from this device</b>.</li>
       <li>Open <b>Downloads</b> and select the PDF named above.</li>
       <li>Send the PDF by itself. Its first page already contains the complete instructions.</li>
     </ol>
     <div class="handoffActions">
-      <button class="mini" id="openCopilotAgainBtn" type="button">🪟 Open Copilot again</button>
+      <button class="mini" id="openAgainBtn" type="button">🪟 Open  again</button>
       <button class="ghost" id="downloadAgainGuideBtn" type="button">⬇ Download PDF again</button>
       <button class="ghost" id="closeGuideBtn" type="button">Close guide</button>
     </div>
@@ -277,7 +277,7 @@ COPILOT ACTION — Click “Build PDF & Open Copilot,” then attach the downloa
 (function(){
   "use strict";
 
-  const COPILOT_URL = "https://www.microsoft365.com/copilot";
+  const _URL = "https://m365.cloud.microsoft/chat/?fromCode=cmcv2&redirectId=ACB3DED96EE440709FB6B42BE2DCA492&internalredirect=CCM&auth=2";
   const M365_ACTIVATION_URL = "https://apps.powerapps.com/play/e/c34e244b-e683-4eef-bb66-67176b581713/a/daf86d65-9ffb-4e95-aaf2-388bbb5304bf?tenantId=8b3dd73e-4e72-4679-b191-56da1588712b&hint=2e699ac1-227b-4779-ac48-f7a1b3ff5631&sourcetime=1743427811944";
   const HANDBOOK_URL = "https://cmihandbook.com";
   const SHARE_TITLE = "CMI Form Completion Builder";
